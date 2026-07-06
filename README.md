@@ -1,17 +1,17 @@
 # olist_ecommerce_sales_analysis
 
-## 📌 Project Overview
+## Project Overview
 
 This project analyzes the **Olist Brazilian E-Commerce Public Dataset** using **PostgreSQL** for data analysis and **Tableau** for interactive visualization. The project explores sales performance, customer behavior, product performance, seller performance and delivery efficiency to generate meaningful business insights.
 
-## 🛠️ Tools & Technologies
+## Tools & Technologies
 
 - **Database:** PostgreSQL
 - **Data Visualization:** Tableau
 - **SQL:** PostgreSQL
 - **Dataset:** Olist Brazilian E-Commerce Public Dataset
 
-## 📈 Business Questions Solved
+## Business Questions Solved
 
 This project answers key business questions such as:
 
@@ -27,7 +27,7 @@ This project answers key business questions such as:
 - What is the on-time delivery performance across states?
 - Which sellers demonstrate the best overall performance?
 
-## 🔍 Key Insights
+## Key Insights
 
 - Total revenue generated was **R$16.01M**.
 - Approximately **99K orders** were placed by **96K unique customers**.
@@ -38,6 +38,6 @@ This project answers key business questions such as:
 - Product sales were concentrated in a few high-performing categories.
 - The overall on-time delivery rate was approximately **92%**, indicating efficient order fulfillment.
 
-## 📊 Dashboard Preview
+## Dashboard Preview
 
 ![Olist Dashboard](Olist_Dashboard.png)
