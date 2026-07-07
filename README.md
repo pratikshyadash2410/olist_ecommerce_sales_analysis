@@ -1,15 +1,18 @@
-# olist_ecommerce_sales_analysis
+# Olist_E-Commerce_Sales_Analysis
 
 ## Project Overview
 
-This project analyzes the **Olist Brazilian E-Commerce Public Dataset** using **PostgreSQL** for data analysis and **Tableau** for interactive visualization. The project explores sales performance, customer behavior, product performance, seller performance and delivery efficiency to generate meaningful business insights.
+Olist is a Brazilian e-commerce marketplace that connects small retailers to major sales channels. This project analyzes their transactional data across 9 relational tables — covering orders, customers, sellers, products, payments, reviews, and geolocation — to uncover patterns in customer behavior, seller performance, delivery efficiency, and product demand. This project analyzes the **Olist Brazilian E-Commerce Public Dataset** using **PostgreSQL** for data analysis and **Tableau** for interactive visualization. The project explores sales performance, customer behavior, product performance, seller performance and delivery efficiency to generate meaningful business insights.
 
 ## Tools & Technologies
 
-- **Database:** PostgreSQL
-- **Data Visualization:** Tableau
-- **SQL:** PostgreSQL
-- **Dataset:** Olist Brazilian E-Commerce Public Dataset
+Postgresql — Database management, SQL analysis
+Tableau — visualization and reporting
+
+## Dataset
+Source: Kaggle — Brazilian E-Commerce Public Dataset by Olist
+Period: 2016 to 2018
+Scale: ~100,000 orders across 9 tables
 
 ## Business Questions Solved
 
@@ -24,8 +27,17 @@ This project answers key business questions such as:
 - Which product categories generate the highest sales?
 - Which product categories are ordered the most?
 - Which regions have the highest delivery delays?
-- What is the on-time delivery performance across states?
+- What is the on time delivery performance across states?
 - Which sellers demonstrate the best overall performance?
+
+## Analysis Highlights
+
+- Revenue & Sales Performance
+- Customer & Geographic Analysis
+- Product Category Performance
+- Payment Method Analysis
+- Delivery Performance Analysis
+- Seller Performance Analysis
 
 ## Key Insights
 
@@ -41,3 +53,7 @@ This project answers key business questions such as:
 ## Dashboard Preview
 
 ![Olist Dashboard](Olist_Dashboard.png)
+
+## ER Diagram
+
+
