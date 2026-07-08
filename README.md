@@ -1,16 +1,15 @@
-# Olist_E-Commerce_Sales_Analysis
+# Olist E-Commerce Sales Analysis
 
-A Business Intelligence project that analyzes the **Olist Brazilian E-Commerce Public Dataset** using **PostgreSQL** for data analysis and **Tableau** for interactive dashboard visualization. The project uncovers valuable insights into sales performance, customer behavior, product trends, seller performance, payment preferences, delivery efficiency and customer reviews to support data driven business decisions.
+A Business Intelligence project that leverages PostgreSQL and Tableau to analyze the Olist Brazilian E-Commerce dataset, transforming raw transactional data into actionable business insights through SQL analysis and interactive dashboards.
 
 ## Project Overview
 
-Olist is a Brazilian e-commerce marketplace that connects small retailers with customers through multiple online sales channels.
-This project analyzes transactional data across **8 relational tables** covering customers, orders, products, sellers, payments, reviews and product categories. Using SQL and Tableau, the analysis identifies business trends, operational bottlenecks, and growth opportunities through meaningful KPIs and business insights.
-
+The Olist Brazilian E-Commerce Public Dataset contains transactional records from a multi vendor online marketplace operating between 2016 and 2018. This project analyzes data across 9 relational tables to evaluate sales performance, customer purchasing patterns, product category trends, seller performance, payment behavior, delivery efficiency, and customer satisfaction. The analysis aims to uncover insights that can support business decision making and operational improvement.
 
 ## Tools & Technologies
 
 Database — Postgresql 
+
 Data visualization — Tableau
 
 ## Analysis Highlights
@@ -63,6 +62,6 @@ Scale: ~100,000 orders across 9 tables
 
 ## Contact
 
-Email: pratikshyadash@gmail.com
+Email: pratikshyadash590@gmail.com
 
 
