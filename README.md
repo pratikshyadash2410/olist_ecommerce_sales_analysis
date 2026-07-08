@@ -55,8 +55,11 @@ Data visualization — Tableau
 ![Olist Dashboard](Olist_Dashboard.png)
 
 ## Dataset
+
 Source: Kaggle — Brazilian E-Commerce Public Dataset by Olist
+
 Period: 2016 to 2018
+
 Scale: ~100,000 orders across 9 tables
 
 
