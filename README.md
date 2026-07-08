@@ -22,7 +22,7 @@ Data visualization — Tableau
 - Customer Review Analysis
 - Key Business Insights
 
-## ❓ Business Questions Answered
+## Business Questions Answered
 
 - What is the total revenue generated?
 - How many customers and orders does the business have?
@@ -37,7 +37,7 @@ Data visualization — Tableau
 - How do customer reviews relate to delivery performance?
 - Which business areas require operational improvement?
 
-## 💡 Key Insights
+## Key Insights
 
 - Generated **R$16.01M** in total revenue.
 - Processed approximately **99K orders** from **96K unique customers**.
