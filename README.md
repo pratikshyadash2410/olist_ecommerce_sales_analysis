@@ -1,7 +1,7 @@
 # Olist_E-Commerce_Sales_Analysis
 
 ## Project Overview
-"C:\Users\hp\Downloads\Olist_Ecommerce_Sales_Performance_Dashboard.twb"
+
 Olist is a Brazilian e-commerce marketplace that connects small retailers to major sales channels. This project analyzes their transactional data across 9 relational tables — covering orders, customers, sellers, products, payments, reviews, and geolocation — to uncover patterns in customer behavior, seller performance, delivery efficiency, and product demand. This project analyzes the **Olist Brazilian E-Commerce Public Dataset** using **PostgreSQL** for data analysis and **Tableau** for interactive visualization. The project explores sales performance, customer behavior, product performance, seller performance and delivery efficiency to generate meaningful business insights.
 
 ## Tools & Technologies
