@@ -4,7 +4,7 @@ A Business Intelligence project that leverages PostgreSQL and Tableau to analyze
 
 ## Project Overview
 
-The Olist Brazilian E-Commerce Public Dataset contains transactional records from a multi vendor online marketplace operating between 2016 and 2018. This project analyzes data across 9 relational tables to evaluate sales performance, customer purchasing patterns, product category trends, seller performance, payment behavior, delivery efficiency, and customer satisfaction. The analysis aims to uncover insights that can support business decision making and operational improvement.
+The Olist Brazilian E-Commerce Public Dataset contains transactional records from a multi vendor online marketplace operating between 2016 and 2018. This project analyzes data across 9 relational tables to evaluate sales performance, customer purchasing patterns, product category trends, seller performance, payment behavior, delivery efficiency and customer satisfaction. The analysis aims to uncover insights that can support business decision making and operational improvement.
 
 ## Tools & Technologies
 
