@@ -42,7 +42,7 @@ Data visualization — Tableau
 - Generated **R$16.01M** in total revenue.
 - Processed approximately **99K orders** from **96K unique customers**.
 - Achieved an **Average Order Value (AOV)** of **R$161**.
-- **São Paulo** generated the highest overall revenue.
+- **Sao Paulo** generated the highest overall revenue.
 - **Credit Card** was the most preferred payment method.
 - A small group of sellers contributed a significant share of total revenue.
 - Sales were concentrated across a few high-performing product categories.
