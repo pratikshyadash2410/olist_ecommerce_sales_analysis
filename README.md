@@ -20,6 +20,7 @@ Data visualization — Tableau
  <img width="1217" height="715" alt="Screenshot 2026-07-10 110151" src="https://github.com/user-attachments/assets/9bf03e08-b9f9-4281-a4b5-ed868e536c3e" />
  
 
+
 - Customer Analysis
 
  New vs Repeat Customers
@@ -36,10 +37,15 @@ Data visualization — Tableau
 - Product Analysis
 
 - Top Categories
+  
   <img width="48%" height="715" alt="Screenshot 2026-07-11 084133" src="https://github.com/user-attachments/assets/0091e9b3-3511-4aeb-a4ac-e6d908288a17" />
+  
 
 - Premium Categories
+  
   <img width="48%" height="713" alt="Screenshot 2026-07-11 083057" src="https://github.com/user-attachments/assets/b42f82fc-ebbf-4029-a619-594b2bdf139d" />
+
+  
 
 - Seller Analysis
   <img width="1432" height="720" alt="Screenshot 2026-07-11 092849" src="https://github.com/user-attachments/assets/3585dd95-05fb-44ec-9b01-027bcf1e10e4" />
