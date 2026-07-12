@@ -64,7 +64,7 @@ Data visualization — Tableau
 
 - R$16M in total revenue, with Sao Paulo emerging as the top performing region.
 - 96.88% of customers were one time buyers a strong signal of market reach, but a clear opportunity to invest in retention.
-- Achieved an **Average Order Value (AOV)** of **R$161**.
+- Achieved an Average Order Value (AOV) of R$161.
 - Credit cards dominated the payment mix at 73.92%, reflecting strong digital payment adoption.
 - A small group of sellers contributed a significant share of total revenue.
 - Sales were concentrated across a few high performing product categories.
