@@ -1,6 +1,6 @@
 # Olist E-Commerce Sales Analysis
 
-A Business Intelligence project that leverages PostgreSQL and Tableau to analyze the Olist Brazilian E-Commerce dataset, transforming raw transactional data into actionable business insights through SQL analysis and interactive dashboard.
+A Business Intelligence project that leverages PostgreSQL and Tableau to analyze the Olist Brazilian E-Commerce dataset, transforming raw transactional data into actionable business insights through SQL analysis and visualization.
 
 ## Project Overview
 
@@ -12,30 +12,17 @@ Database — PostgreSQL
 
 Data visualization — Tableau
 
-## Analysis Highlights
+## Analysis Visuals
 
-- Business Overview
+- Revenue & Growth
+- <img width="1217" height="715" alt="Screenshot 2026-07-10 110151" src="https://github.com/user-attachments/assets/9bf03e08-b9f9-4281-a4b5-ed868e536c3e" />
+
 - Customer Analysis
 - Product Analysis
 - Seller Analysis
 - Delivery Analysis
 - Customer Review Analysis
 - Key Business Insights
-
-## Business Questions Answered
-
-- What is the total revenue generated?
-- How many customers and orders does the business have?
-- What is the Average Order Value (AOV)?
-- How has revenue changed over time?
-- Which payment methods generate the highest revenue?
-- Which states contribute the most revenue?
-- Which product categories generate the highest revenue?
-- Which product categories have the highest freight costs?
-- Which sellers contribute the highest revenue?
-- How efficient is the delivery process?
-- How do customer reviews relate to delivery performance?
-- Which business areas require operational improvement?
 
 ## Key Insights
 
