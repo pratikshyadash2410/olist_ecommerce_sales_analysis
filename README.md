@@ -15,7 +15,7 @@ Data visualization — Tableau
 ## Analysis Visuals
 
 - Revenue & Growth
-- <img width="1217" height="715" alt="Screenshot 2026-07-10 110151" src="https://github.com/user-attachments/assets/9bf03e08-b9f9-4281-a4b5-ed868e536c3e" />
+ <img width="1217" height="715" alt="Screenshot 2026-07-10 110151" src="https://github.com/user-attachments/assets/9bf03e08-b9f9-4281-a4b5-ed868e536c3e" />
 
 - Customer Analysis
 - Product Analysis
