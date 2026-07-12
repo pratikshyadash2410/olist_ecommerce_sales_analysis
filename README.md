@@ -38,19 +38,23 @@ Data visualization — Tableau
   <img width="48%" height="715" alt="Screenshot 2026-07-11 084133" src="https://github.com/user-attachments/assets/0091e9b3-3511-4aeb-a4ac-e6d908288a17" />
   <img width="48%" height="713" alt="Screenshot 2026-07-11 083057" src="https://github.com/user-attachments/assets/b42f82fc-ebbf-4029-a619-594b2bdf139d" />
 
-  
-
 
 - Seller Analysis
+
+ Top 50 Seller Performance Analysis
   <img width="1432" height="720" alt="Screenshot 2026-07-11 092849" src="https://github.com/user-attachments/assets/3585dd95-05fb-44ec-9b01-027bcf1e10e4" />
 
 - Delivery Analysis
-  <img width="1470" height="711" alt="Screenshot 2026-07-11 112146" src="https://github.com/user-attachments/assets/2e3ebb5a-fde2-4416-ba47-51d8e6f6494a" />
-  <img width="1066" height="707" alt="Screenshot 2026-07-11 120848" src="https://github.com/user-attachments/assets/88d2f22b-ee15-4253-9725-a9a4b1b7eeab" />
+
+ Top 10 states with highest late delivery rate (%) | Average time at each step (days)
+  <img width="48%" height="711" alt="Screenshot 2026-07-11 112146" src="https://github.com/user-attachments/assets/2e3ebb5a-fde2-4416-ba47-51d8e6f6494a" />
+  <img width="48%" height="707" alt="Screenshot 2026-07-11 120848" src="https://github.com/user-attachments/assets/88d2f22b-ee15-4253-9725-a9a4b1b7eeab" />
 
 - Payment Analysis
-  <img width="1197" height="692" alt="Screenshot 2026-07-11 102646" src="https://github.com/user-attachments/assets/061a2bfd-4fe3-4d08-88f6-b6c21ef36b79" />
-  <img width="386" height="407" alt="Screenshot 2026-07-11 102625" src="https://github.com/user-attachments/assets/8ef4cbca-3664-4aa0-bc16-3634f62b0605" />
+
+ Average payment by installment use (R$) | Payment method distribution
+  <img width="48%" height="692" alt="Screenshot 2026-07-11 102646" src="https://github.com/user-attachments/assets/061a2bfd-4fe3-4d08-88f6-b6c21ef36b79" />
+  <img width="50%" height="407" alt="Screenshot 2026-07-11 102625" src="https://github.com/user-attachments/assets/8ef4cbca-3664-4aa0-bc16-3634f62b0605" />
 
 ## Key Insights
 
