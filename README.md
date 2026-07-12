@@ -56,7 +56,7 @@ Data visualization — Tableau
 
  Payment method distribution | Average payment by installment use (R$)
 
-  <img width="353" height="362" alt="Screenshot 2026-07-12 170548" src="https://github.com/user-attachments/assets/04988b4c-961b-4381-b5bd-9aeda8e29325" />
+  <img width="48%" height="362" alt="Screenshot 2026-07-12 170548" src="https://github.com/user-attachments/assets/04988b4c-961b-4381-b5bd-9aeda8e29325" />
   <img width="48%" height="450" alt="Screenshot 2026-07-11 102646" src="https://github.com/user-attachments/assets/061a2bfd-4fe3-4d08-88f6-b6c21ef36b79" />
   
 
