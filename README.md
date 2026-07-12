@@ -18,7 +18,7 @@ Data visualization — Tableau
 
   Revenue by Month
   
- <img width="50%" height="715" alt="Screenshot 2026-07-10 110151" src="https://github.com/user-attachments/assets/9bf03e08-b9f9-4281-a4b5-ed868e536c3e" />
+  <img width="50%" height="715" alt="Screenshot 2026-07-10 110151" src="https://github.com/user-attachments/assets/9bf03e08-b9f9-4281-a4b5-ed868e536c3e" />
  
 
 
@@ -47,16 +47,16 @@ Data visualization — Tableau
 
 - Delivery Analysis
 
-  Top 10 states with highest late delivery rate (%) | Average time at each step (days)
+  Average time at each step (days) | Top 10 states with highest late delivery rate (%) 
   
    <img width="48%" height="707" alt="Screenshot 2026-07-11 120848" src="https://github.com/user-attachments/assets/88d2f22b-ee15-4253-9725-a9a4b1b7eeab" /> 
-  <img width="48%" height="711" alt="Screenshot 2026-07-11 112146" src="https://github.com/user-attachments/assets/2e3ebb5a-fde2-4416-ba47-51d8e6f6494a" />
+  <img width="48%" height="707" alt="Screenshot 2026-07-11 112146" src="https://github.com/user-attachments/assets/2e3ebb5a-fde2-4416-ba47-51d8e6f6494a" />
  
 - Payment Analysis
 
  Average payment by installment use (R$) | Payment method distribution
  
-  <img width="48%" height="692" alt="Screenshot 2026-07-11 102646" src="https://github.com/user-attachments/assets/061a2bfd-4fe3-4d08-88f6-b6c21ef36b79" />
+  <img width="48%" height="407" alt="Screenshot 2026-07-11 102646" src="https://github.com/user-attachments/assets/061a2bfd-4fe3-4d08-88f6-b6c21ef36b79" />
   <img width="48%%" height="407" alt="Screenshot 2026-07-11 102625" src="https://github.com/user-attachments/assets/8ef4cbca-3664-4aa0-bc16-3634f62b0605" />
 
 ## Key Insights
