@@ -36,7 +36,7 @@ Data visualization — Tableau
   Premium Categories | Top Categories
   
   <img width="48%" height="715" alt="Screenshot 2026-07-11 084133" src="https://github.com/user-attachments/assets/0091e9b3-3511-4aeb-a4ac-e6d908288a17" />
-  <img width="48%" height="713" alt="Screenshot 2026-07-11 083057" src="https://github.com/user-attachments/assets/b42f82fc-ebbf-4029-a619-594b2bdf139d" />
+  <img width="48%" height="715" alt="Screenshot 2026-07-11 083057" src="https://github.com/user-attachments/assets/b42f82fc-ebbf-4029-a619-594b2bdf139d" />
 
 
 - Seller Analysis
@@ -57,7 +57,7 @@ Data visualization — Tableau
  Average payment by installment use (R$) | Payment method distribution
  
   <img width="48%" height="407" alt="Screenshot 2026-07-11 102646" src="https://github.com/user-attachments/assets/061a2bfd-4fe3-4d08-88f6-b6c21ef36b79" />
-  <img width="48%%" height="407" alt="Screenshot 2026-07-11 102625" src="https://github.com/user-attachments/assets/8ef4cbca-3664-4aa0-bc16-3634f62b0605" />
+  <img width="353" height="362" alt="Screenshot 2026-07-12 170548" src="https://github.com/user-attachments/assets/04988b4c-961b-4381-b5bd-9aeda8e29325" />
 
 ## Key Insights
 
