@@ -18,6 +18,7 @@ Data visualization — Tableau
  <img width="1217" height="715" alt="Screenshot 2026-07-10 110151" src="https://github.com/user-attachments/assets/9bf03e08-b9f9-4281-a4b5-ed868e536c3e" />
 
 - Customer Analysis
+  
   <img width="48%" height="703" alt="Screenshot 2026-07-10 154331" src="https://github.com/user-attachments/assets/557eaea4-d9a8-40d0-a906-6f374697a37a" />
   <img width="48%" height="708" alt="Screenshot 2026-07-12 111404" src="https://github.com/user-attachments/assets/1e03076e-5c56-4735-989b-e6bce12c28b2" />
 
