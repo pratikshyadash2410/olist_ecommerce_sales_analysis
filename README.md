@@ -36,12 +36,12 @@ Data visualization — Tableau
 
 - Product Analysis
 
-- Top Categories
+  Top Categories
   
   <img width="48%" height="715" alt="Screenshot 2026-07-11 084133" src="https://github.com/user-attachments/assets/0091e9b3-3511-4aeb-a4ac-e6d908288a17" />
   
 
-- Premium Categories
+   Premium Categories
   
   <img width="48%" height="713" alt="Screenshot 2026-07-11 083057" src="https://github.com/user-attachments/assets/b42f82fc-ebbf-4029-a619-594b2bdf139d" />
 
