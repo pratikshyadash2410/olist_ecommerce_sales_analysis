@@ -15,16 +15,25 @@ Data visualization — Tableau
 ## Analysis Visuals
 
 - Revenue & Growth
+
+  Revenue by Month
  <img width="1217" height="715" alt="Screenshot 2026-07-10 110151" src="https://github.com/user-attachments/assets/9bf03e08-b9f9-4281-a4b5-ed868e536c3e" />
 
 - Customer Analysis
-  
+
+- New vs Repeat Customers
   <img width="48%" height="703" alt="Screenshot 2026-07-10 154331" src="https://github.com/user-attachments/assets/557eaea4-d9a8-40d0-a906-6f374697a37a" />
+
+- Customer Distribution
   <img width="48%" height="708" alt="Screenshot 2026-07-12 111404" src="https://github.com/user-attachments/assets/1e03076e-5c56-4735-989b-e6bce12c28b2" />
 
 - Product Analysis
-  <img width="1437" height="715" alt="Screenshot 2026-07-11 084133" src="https://github.com/user-attachments/assets/0091e9b3-3511-4aeb-a4ac-e6d908288a17" />
-  <img width="1212" height="713" alt="Screenshot 2026-07-11 083057" src="https://github.com/user-attachments/assets/b42f82fc-ebbf-4029-a619-594b2bdf139d" />
+
+- Top Categories
+  <img width="48%" height="715" alt="Screenshot 2026-07-11 084133" src="https://github.com/user-attachments/assets/0091e9b3-3511-4aeb-a4ac-e6d908288a17" />
+
+- Premium Categories
+  <img width="48%" height="713" alt="Screenshot 2026-07-11 083057" src="https://github.com/user-attachments/assets/b42f82fc-ebbf-4029-a619-594b2bdf139d" />
 
 - Seller Analysis
   <img width="1432" height="720" alt="Screenshot 2026-07-11 092849" src="https://github.com/user-attachments/assets/3585dd95-05fb-44ec-9b01-027bcf1e10e4" />
