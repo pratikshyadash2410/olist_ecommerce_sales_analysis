@@ -51,7 +51,3 @@ streamlit run app.py
 You'll need a free Gemini API key from [Google AI Studio](https://aistudio.google.com) 
 
 
-## Related
-
-- Main analysis: [Olist E-Commerce Sales Analysis](../) (SQL + Tableau)
-
