@@ -2,6 +2,12 @@
 
 A Business Intelligence project that leverages PostgreSQL and Tableau to analyze the Olist Brazilian E-Commerce dataset, transforming raw transactional data into actionable business insights through SQL analysis and visualization.
 
+## 🤖 AI Extension
+
+This project has been extended with an AI-powered natural language query assistant — ask business questions in plain English and get instant SQL backed answers with auto generated visualizations and insights.
+
+👉 [Explore the AI Query Assistant](./ai-query-assistant)
+
 ## Project Overview
 
 Olist is a Brazilian e-commerce marketplace that connects small retailers to major sales channels. This project analyzes data across 9 relational tables to evaluate sales performance, customer purchasing patterns, product category trends, seller performance, payment behavior, delivery efficiency and customer satisfaction. The analysis aims to uncover insights that can support business decision making and operational improvement.
