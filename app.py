@@ -3,11 +3,21 @@ import pandas as pd
 import streamlit as st
 import altair as alt
 import google.generativeai as genai
+import os
+from build_database import build_database
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "olist.db")
 
 # Page Configuration
 st.set_page_config(page_title="Olist AI Data Assistant", layout="wide")
 st.title("🤖 Olist E-Commerce AI Data Assistant")
-st.write("Ask business questions in plain English — AI converts to SQL, runs it, visualizes data and explains results.")
+st.write("Ask business questions in plain English — AI converts to SQL, runs it, visualizes data, and explains results.")
+
+# Build the database from the bundled CSVs the very first time the app runs
+if not os.path.exists(DB_PATH):
+    with st.spinner("Setting up the database for the first time (only happens once)..."):
+        build_database()
 
 # Sidebar for API Key
 st.sidebar.header("Configuration")
@@ -41,7 +51,7 @@ def generate_with_fallback(prompt):
 
 
 def get_db_schema():
-    conn = sqlite3.connect("olist.db")
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
     tables = cursor.fetchall()
@@ -127,7 +137,7 @@ def render_visualization(df_result):
 
 EXAMPLE_QUESTIONS = [
     "Top 10 customer states by revenue",
-    "Which product category has the most orders?",
+    "Top 10 product categories by number of orders",
     "Show monthly revenue trend",
     "What is the average order value?",
 ]
@@ -166,7 +176,7 @@ if st.button("Analyze Query"):
         st.code(clean_sql, language="sql")
 
         # Step 2: Execute Query
-        conn = sqlite3.connect("olist.db")
+        conn = sqlite3.connect(DB_PATH)
         df_result = pd.read_sql_query(clean_sql, conn)
         conn.close()
 
