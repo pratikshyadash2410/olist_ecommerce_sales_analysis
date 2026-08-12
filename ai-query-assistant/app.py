@@ -12,7 +12,7 @@ DB_PATH = os.path.join(BASE_DIR, "olist.db")
 # Page Configuration
 st.set_page_config(page_title="Olist AI Data Assistant", layout="wide")
 st.title("🤖 Olist E-Commerce AI Data Assistant")
-st.write("Ask business questions in plain English — AI converts to SQL, runs it, visualizes data, and explains results.")
+st.write("Ask business questions in plain English — AI converts to SQL, runs it, visualizes data and explains results.")
 
 # Build the database from the bundled CSVs the very first time the app runs
 if not os.path.exists(DB_PATH):
@@ -201,7 +201,8 @@ if st.button("Analyze Query"):
         User Question: "{user_query}"
         Data Results: {df_result.head(10).to_dict(orient='records')}
 
-        Acting as a Business Analyst, provide a concise 2-sentence business insight based strictly on these query results.
+        Acting as a Business Analyst, provide a concise 5-sentence business insight based strictly on these query results. Each line should be a short, distinct point (e.g. the headline finding, a notable pattern, a possible business implication, a caveat or limitation, and a suggested next step).
+
         """
 
         with st.spinner("💡 Analyzing results and generating insights..."):
