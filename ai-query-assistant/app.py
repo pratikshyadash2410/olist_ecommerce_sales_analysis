@@ -7,7 +7,7 @@ import os
 from build_database import build_database
 import datetime
 
-# --- CONFIGURATION & PATHS ---
+# --- CONFIGURATION ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "olist.db")
 
@@ -42,8 +42,7 @@ if not api_key:
 # Configure Gemini API
 genai.configure(api_key=api_key)
 
-
-# --- HELPERS ---
+# --- HELPER FUNCTIONS ---
 def generate_with_fallback(prompt):
     candidate_models = [
         "gemini-2.5-flash-lite",
@@ -79,11 +78,17 @@ def get_db_schema():
     conn.close()
     return schema_text
 
+def sanitize_column_name(col):
+    """Sanitizes names for Altair compliance (SUM(i.total) -> SUM_i_total)."""
+    return col.replace('.', '_').replace('(', '_').replace(')', '_').strip()
 
-# --- VISUALIZATION ENGINE (DEDICATED ALTAIR) ---
+
+# ---------------------------------------------------------
+# Step 3: Fixed visualization Engine with Priority Detection
+# ---------------------------------------------------------
 def render_visualization(df_result):
-    """Auto-picks the right chart type based on what the query actually returned.
-    Uses explicit Altair for Bar and Line charts for maximum reliability."""
+    """Auto-picks the right chart type based on prioritized column name detection
+    and robust data transformations."""
     if df_result.empty:
         st.info("No rows returned, nothing to chart.")
         return
@@ -91,83 +96,74 @@ def render_visualization(df_result):
     st.subheader("3. Data Visualization")
 
     try:
-        # Step 0: Create a safe copy and sanitize column names (dots -> underscores)
-        # This is crucial for Altair to avoid "field not found" errors on aggregate names
+        # Step 0: Sanitize column names right away to prevent visualization library failures
         df_plot = df_result.copy()
-        safe_col_map = {col: col.replace('.', '_') for col in df_plot.columns}
+        safe_col_map = {col: sanitize_column_name(col) for col in df_plot.columns}
         df_plot.rename(columns=safe_col_map, inplace=True)
         
-        # Step 1: Detect column types explicitly from sanitized dataframe
+        # Step 1: Detect explicit types
         numeric_cols = df_plot.select_dtypes(include=["number"]).columns.tolist()
-        non_numeric_cols = df_plot.select_dtypes(exclude=["number"]).columns.tolist()
+        other_cols = df_plot.select_dtypes(exclude=["number"]).columns.tolist()
 
-        # Isolate the logic to find the trend/time column among non-numeric ones
-        potential_trend_col = None
-        # Priority 1: If AI named a column explicitly with 'month', 'year', 'day', 'trend'
+        # ---------------------------------------------------------
+        # THE FIX: Priority Trend Detection Logic
+        # ---------------------------------------------------------
+        potential_time_col = None
+        
+        # Priority A: Exact matches to common trend period names (case-insensitive)
         for col in df_plot.columns:
-            if any(x in col.lower() for x in ['month', 'year', 'day', 'trend', 'date', 'period']):
-                potential_trend_col = col
+            if any(x in col.lower() for x in ['month', 'year', 'date', 'period', 'day']):
+                potential_time_col = col
                 break
         
-        # Priority 2: Try standard date parsing among other non-numeric columns
-        if not potential_trend_col and non_numeric_cols:
-            for col in non_numeric_cols:
+        # Priority B: If Priority A failed, fall back to standard Pandas date parsing inference
+        if not potential_time_col and other_cols:
+            for col in other_cols:
                 parsed = pd.to_datetime(df_plot[col], errors="coerce")
-                if parsed.notna().mean() > 0.8:  # most values parse as dates
-                    potential_trend_col = col
+                if parsed.notna().mean() > 0.8:  # most values parse correctly as dates
+                    potential_time_col = col
                     break
 
-        # Step 2: Handle Visualization Based on Shape
+        # Step 2: Render Chart Based on Detected Shape
 
-        # A) KPI (Single Value Result)
-        if len(non_numeric_cols) == 0 and len(df_plot) == 1:
+        # 1. KPI (Single Value)
+        if len(other_cols) == 0 and len(df_plot) == 1:
             for col in df_plot.columns:
                 st.metric(label=col.replace('_', ' ').title(), value=df_plot[col].iloc[0])
 
-        # B) Line Chart (Explicit Altair for Trend Over Time)
-        elif potential_trend_col and numeric_cols:
-            x_axis = potential_trend_col
-            y_axis = numeric_cols[0] # Use first numeric column as metric
+        # 2. Line Chart (Trend Over Time - THE FIX)
+        elif potential_time_col and numeric_cols:
+            date_axis = potential_time_col
+            y_axis = numeric_cols[0]
             
-            # CRITICAL Step: SQLite outputs dates as formatted strings ('2018-05').
-            # Streamlit/Altair need them as proper datetime objects for chronological plotting.
+            # THE CRUCIAL TRANSFORMATION: 
+            # SQLite outputs date formatted STRINGS ('2018-05'). We MUST explicitly 
+            # transform them to true DATETIME objects and set as the index for st.line_chart.
             try:
-                # Force datetime conversion
-                df_plot[x_axis] = pd.to_datetime(df_plot[x_axis])
+                # Use standard parsing but allow fallback to string-based chronological sort
+                # (strftime output: '2018-01', '2018-02' sorts correctly alphabetically too)
+                pd.to_datetime(df_plot[date_axis]) # Verify it is datetime parseable
                 
-                # Sort Chronologically (mandatory for meaningful lines)
-                df_trend = df_plot.dropna(subset=[x_axis]).sort_values(x_axis)
+                chart_df = df_plot[[date_axis] + numeric_cols].copy()
+                chart_df[date_axis] = pd.to_datetime(chart_df[date_axis])
+                chart_df = chart_df.dropna(subset=[date_axis]).sort_values(date_axis)
+                chart_df = chart_df.set_index(date_axis)
                 
-                # Explicit Altair Line Chart Definition
-                line_chart = (
-                    alt.Chart(df_trend)
-                    .mark_line(point=True) # Line with small points for clarity
-                    .encode(
-                        x=alt.X(f"{x_axis}:T", title=x_axis.replace('_', ' ').title()), # :T means Temporal/Time data
-                        y=alt.Y(f"{y_axis}:Q", title=y_axis.replace('_', ' ').title()), # :Q means Quantitative data
-                        tooltip=[
-                            alt.Tooltip(f"{x_axis}:T", format="%Y-%m-%d"), 
-                            alt.Tooltip(f"{y_axis}:Q", format=",.2f") # formatted numeric tooltip
-                        ]
-                    )
-                    .interactive() # Enable zoom/pan
-                    .properties(height=400) # Ensure a decent height
-                )
-                
-                st.altair_chart(line_chart, use_container_width=True)
+                # Plot standard trend line with chronological axis
+                st.line_chart(chart_df)
                 
             except Exception as e:
-                st.warning(f"Trend data detected ({x_axis}), but chronological date conversion failed ({e}). Here is a fallback Bar Chart instead.")
-                # Fallback to bar if date conversion fails
-                chart_df = df_plot.set_index(x_axis)[[y_axis]].sort_index()
-                st.bar_chart(chart_df)
+                # If datetime conversion fails, fallback to standard alphabetical sorting (bar chart)
+                st.warning(f"Found chronological data ({date_axis}), but date parsing failed ({e}). Here is a standard chart instead.")
+                chart_df = df_plot.groupby(date_axis)[y_axis].sum().reset_index()
+                st.bar_chart(chart_df.set_index(date_axis))
 
-        # C) Bar Chart (Explicit Altair for Categorical Comparison)
-        elif non_numeric_cols and numeric_cols:
-            category_col = non_numeric_cols[0]
+        # 3. Bar Chart (Categorical Comparison - Working as intended)
+        elif other_cols and numeric_cols:
+            category_col = other_cols[0]
             value_col = numeric_cols[0]
             
-            # Limit to manageable top categories
+            # Use explicit grouping and top N for reliable bar charts
             chart_df = (
                 df_plot.groupby(category_col)[value_col]
                 .sum()
@@ -175,25 +171,18 @@ def render_visualization(df_result):
                 .head(15)
                 .reset_index()
             )
-            
-            # Explicit Altair Bar Chart Definition with proper sorting
+            # Explicit Altair sorting is mandatory here
             bar_chart = (
                 alt.Chart(chart_df)
                 .mark_bar()
                 .encode(
-                    x=alt.X(f"{category_col}:N", sort="-y", title=category_col.replace('_', ' ').title()), # :N means Nominal/Categorical
-                    y=alt.Y(f"{value_col}:Q", title=value_col.replace('_', ' ').title()),
-                    tooltip=[
-                        alt.Tooltip(f"{category_col}:N"), 
-                        alt.Tooltip(f"{value_col}:Q", format=",.2f")
-                    ]
+                    x=alt.X(f"{category_col}:N", sort="-y", title=category_col),
+                    y=alt.Y(f"{value_col}:Q", title=value_col),
                 )
-                .interactive()
-                .properties(height=400)
             )
             st.altair_chart(bar_chart, use_container_width=True)
 
-        # D) Scatter Plot (Two Numeric Columns)
+        # 4. Scatter (Relationship)
         elif len(numeric_cols) >= 2:
             st.scatter_chart(df_plot[numeric_cols[:2]])
 
@@ -204,7 +193,7 @@ def render_visualization(df_result):
         st.warning(f"Couldn't generate a chart for this result. It might have complex data relationships. ({chart_error})")
 
 
-# --- EXAMPLES & USER INPUT ---
+# --- USER INPUT SECTION ---
 EXAMPLE_QUESTIONS = [
     "Top 10 customer states by revenue",
     "Top 10 product categories by number of orders",
@@ -228,7 +217,7 @@ if st.button("Analyze Query"):
     schema_info = get_db_schema()
 
     if not schema_info.strip():
-        st.error("Database has no tables. Delete olist.db and reload this page.")
+        st.error("Database has no tables. Delete olist.db and reload this page to rebuild.")
         st.stop()
 
     sql_prompt = f"""
@@ -239,13 +228,14 @@ if st.button("Analyze Query"):
     Rules:
     - Output ONLY raw executable SQL code.
     - Do NOT wrap in ```sql or markdown fences.
-    - If the question asks about a trend over time (monthly, yearly, daily, etc.), extract the period using SQLite's strftime function (e.g. strftime('%Y-%m', date_column) AS period), GROUP BY that extracted period, and ORDER BY it chronologically. Use 'period' or 'date' in the alias name for clarity.
+    - If the question asks about a trend over time (monthly, yearly, daily, etc.), extract the period using SQLite's strftime function (e.g. strftime('%Y-%m', date_column) AS month), GROUP BY that extracted period, and ORDER BY it chronologically. Never collapse a trend question into a single aggregate row.
     - User Question: {user_query}
     """
 
     try:
         with st.spinner("🤖 Converting your question to SQL..."):
             sql_response_text = generate_with_fallback(sql_prompt)
+            # Standard cleanup of fences if Gemini added them
             clean_sql = sql_response_text.strip().replace("```sql", "").replace("```", "").strip()
 
         st.subheader("1. Generated SQL Query")
@@ -259,7 +249,7 @@ if st.button("Analyze Query"):
         st.subheader("2. Query Output Data")
         st.dataframe(df_result)
 
-        # Step 3: Visualization — explicit Altair integration
+        # Step 3: Fixed Visualization (Isolated try block)
         render_visualization(df_result)
 
         # Step 4: Business Insights
@@ -268,7 +258,7 @@ if st.button("Analyze Query"):
             User Question: "{user_query}"
             Data Results: {df_result.head(10).to_dict(orient='records')}
 
-            Acting as a Business Analyst, provide a concise business insight in exactly 5 lines based strictly on these query results. Each line should be a short, distinct point (e.g. headline finding, pattern, implication, caveat, next step).
+            Acting as a Business Analyst, provide a concise business insight in exactly 5 lines based strictly on these query results. Each line should be a short, distinct point (e.g. the headline finding, a notable pattern, a possible business implication, a caveat or limitation, and a suggested next step).
             """
 
             with st.spinner("💡 Analyzing results and generating insights..."):
