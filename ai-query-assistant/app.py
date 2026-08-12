@@ -5,6 +5,7 @@ import altair as alt
 import google.generativeai as genai
 import os
 from build_database import build_database
+import datetime
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "olist.db")
@@ -80,27 +81,46 @@ def render_visualization(df_result):
         numeric_cols = df_result.select_dtypes(include=["number"]).columns.tolist()
         other_cols = df_result.select_dtypes(exclude=["number"]).columns.tolist()
 
-        # Detect a date/time-like column among the non-numeric ones
-        date_col = None
-        for col in other_cols:
-            parsed = pd.to_datetime(df_result[col], errors="coerce")
-            if parsed.notna().mean() > 0.8:  # most values parse as dates
-                date_col = col
+        # Isolate the logic to find the trend/time column
+        potential_trend_col = None
+        
+        # Priority 1: If AI named a column explicitly with 'month', 'year', 'day', 'trend'
+        for col in df_result.columns:
+            if any(x in col.lower() for x in ['month', 'year', 'day', 'trend', 'date']):
+                potential_trend_col = col
                 break
+        
+        # Priority 2: Standard date parsing among non-numeric columns
+        if not potential_trend_col and other_cols:
+            for col in other_cols:
+                parsed = pd.to_datetime(df_result[col], errors="coerce")
+                if parsed.notna().mean() > 0.8:  # most values parse as dates
+                    potential_trend_col = col
+                    break
 
         if len(other_cols) == 0 and len(df_result) == 1:
             # Only truly numeric, single-row results count as a KPI
-            # (e.g. "what is total revenue?", "average order value")
             for col in df_result.columns:
                 st.metric(label=col, value=df_result[col].iloc[0])
 
-        elif date_col and numeric_cols:
-            # Time-based question -> line chart shows the trend
-            chart_df = df_result[[date_col] + numeric_cols].copy()
-            chart_df[date_col] = pd.to_datetime(chart_df[date_col], errors="coerce")
-            chart_df = chart_df.dropna(subset=[date_col]).sort_values(date_col)
-            chart_df = chart_df.set_index(date_col)
-            st.line_chart(chart_df)
+        elif potential_trend_col and numeric_cols:
+            # Time/Trend-based question -> line chart shows the trend
+            chart_df = df_result[[potential_trend_col] + numeric_cols].copy()
+            
+            # Key Fix for formatted strings ('2018-05') failing chronological plot
+            # Attempt to convert formatted date strings into datetime objects for sorting/plotting
+            try:
+                chart_df[potential_trend_col] = pd.to_datetime(chart_df[potential_trend_col])
+                chart_df = chart_df.dropna(subset=[potential_trend_col]).sort_values(potential_trend_col)
+                chart_df = chart_df.set_index(potential_trend_col)
+                
+                st.line_chart(chart_df)
+            except Exception as e:
+                st.warning(f"Found trend data ({potential_trend_col}) but couldn't parse dates automatically for a chronological plot. Here is a standard bar chart instead.")
+                # Fallback to bar chart if sorting/datetime conversion fails
+                chart_df = chart_df.sort_values(by=potential_trend_col)
+                chart_df = chart_df.set_index(potential_trend_col)
+                st.bar_chart(chart_df)
 
         elif other_cols and numeric_cols:
             # Category-based question, e.g. "top states by revenue" -> bar chart
@@ -113,8 +133,6 @@ def render_visualization(df_result):
                 .head(15)
                 .reset_index()
             )
-            # st.bar_chart re-sorts categories alphabetically, ignoring our order —
-            # use Altair directly and force the x-axis to sort by value (descending)
             bar_chart = (
                 alt.Chart(chart_df)
                 .mark_bar()
