@@ -84,7 +84,7 @@ def sanitize_column_name(col):
 
 
 # ---------------------------------------------------------
-# Step 3: Fixed visualization Engine with Priority Detection
+# Step 3: Updated Visualization Engine (Priority Detection Fix)
 # ---------------------------------------------------------
 def render_visualization(df_result):
     """Auto-picks the right chart type based on prioritized column name detection
@@ -110,13 +110,14 @@ def render_visualization(df_result):
         # ---------------------------------------------------------
         potential_time_col = None
         
-        # Priority A: Exact matches to common trend period names (case-insensitive)
+        # Priority A: Look for explicit time period names (month, year, period, date)
+        # SQLite's strftime often names the aggregate column one of these.
         for col in df_plot.columns:
             if any(x in col.lower() for x in ['month', 'year', 'date', 'period', 'day']):
                 potential_time_col = col
                 break
         
-        # Priority B: If Priority A failed, fall back to standard Pandas date parsing inference
+        # Priority B: Fall back to checking standard non-numeric columns if inference fails.
         if not potential_time_col and other_cols:
             for col in other_cols:
                 parsed = pd.to_datetime(df_plot[col], errors="coerce")
@@ -136,27 +137,48 @@ def render_visualization(df_result):
             date_axis = potential_time_col
             y_axis = numeric_cols[0]
             
-            # THE CRUCIAL TRANSFORMATION: 
-            # SQLite outputs date formatted STRINGS ('2018-05'). We MUST explicitly 
-            # transform them to true DATETIME objects and set as the index for st.line_chart.
+            # THE MANDATORY TRANSFORMATION: 
+            # We must explicitly convert the date strings (strftime output: '2018-05') 
+            # into true DATETIME objects. This is crucial for chronological sorting.
             try:
-                # Use standard parsing but allow fallback to string-based chronological sort
-                # (strftime output: '2018-01', '2018-02' sorts correctly alphabetically too)
-                pd.to_datetime(df_plot[date_axis]) # Verify it is datetime parseable
+                # Force datetime conversion
+                df_plot[date_axis] = pd.to_datetime(df_plot[date_axis])
                 
-                chart_df = df_plot[[date_axis] + numeric_cols].copy()
-                chart_df[date_axis] = pd.to_datetime(chart_df[date_axis])
-                chart_df = chart_df.dropna(subset=[date_axis]).sort_values(date_axis)
-                chart_df = chart_df.set_index(date_axis)
+                # Sort Chronologically (mandatory for meaningful lines)
+                df_trend = df_plot[[date_axis] + numeric_cols].copy()
+                df_trend = df_trend.dropna(subset=[date_axis]).sort_values(date_axis)
                 
-                # Plot standard trend line with chronological axis
-                st.line_chart(chart_df)
+                # Explicit Altair Line Chart Definition with Temporal Encoding (:T)
+                line_chart = (
+                    alt.Chart(df_trend)
+                    .mark_line(point=True) # Line with small points for clarity
+                    .encode(
+                        x=alt.X(f"{date_axis}:T", title=date_axis.replace('_', ' ').title()), # :T means Time data
+                        y=alt.Y(f"{y_axis}:Q", title=y_axis.replace('_', ' ').title()), # :Q means Quantitative data
+                        tooltip=[
+                            alt.Tooltip(f"{date_axis}:T", format="%Y-%m-%d"), 
+                            alt.Tooltip(f"{y_axis}:Q", format=",.2f") # formatted numeric tooltip
+                        ]
+                    )
+                    .interactive() # Enable zoom/pan
+                    .properties(height=400) # Ensure a decent height
+                )
+                
+                st.altair_chart(line_chart, use_container_width=True)
                 
             except Exception as e:
-                # If datetime conversion fails, fallback to standard alphabetical sorting (bar chart)
-                st.warning(f"Found chronological data ({date_axis}), but date parsing failed ({e}). Here is a standard chart instead.")
+                # Fallback to bar chart if date conversion fails (handles edge case)
+                st.warning(f"Chronological data found ({date_axis}), but explicit date parsing failed ({e}). Rendering standard chart.")
                 chart_df = df_plot.groupby(date_axis)[y_axis].sum().reset_index()
-                st.bar_chart(chart_df.set_index(date_axis))
+                bar_chart = (
+                    alt.Chart(chart_df)
+                    .mark_bar()
+                    .encode(
+                        x=alt.X(f"{date_axis}:N", sort="-y"),
+                        y=alt.Y(f"{y_axis}:Q"),
+                    )
+                )
+                st.altair_chart(bar_chart, use_container_width=True)
 
         # 3. Bar Chart (Categorical Comparison - Working as intended)
         elif other_cols and numeric_cols:
