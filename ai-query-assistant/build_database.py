@@ -12,8 +12,9 @@ import pandas as pd
 import sqlite3
 import os
 
-DATA_DIR = "data"
-DB_NAME = "olist.db"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+DB_NAME = os.path.join(BASE_DIR, "olist.db")
 
 FILE_TO_TABLE = {
     "olist_customers_dataset.csv": "customers",
