@@ -2,3 +2,5 @@ streamlit
 pandas
 google-generativeai
 altair
+matplotlib
+seaborn
