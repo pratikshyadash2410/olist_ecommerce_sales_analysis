@@ -158,6 +158,12 @@ if st.button("Analyze Query"):
 
     if not schema_info.strip():
         st.error("Database has no tables. This usually means the CSV filenames in your data/ folder don't match what build_database.py expects. Delete olist.db and reboot the app to rebuild it.")
+        data_folder = os.path.join(BASE_DIR, "data")
+        try:
+            files_found = os.listdir(data_folder)
+            st.write(f"**Debug — files found in `data/` folder:** {files_found}")
+        except Exception as e:
+            st.write(f"**Debug — couldn't read `data/` folder:** {e}")
         st.stop()
 
     sql_prompt = f"""

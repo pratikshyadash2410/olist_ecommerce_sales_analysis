@@ -1,6 +1,8 @@
-# Data files (too large for GitHub, and publicly available on Kaggle anyway)
-*.csv
+# Local build artifact — auto-generated from the CSVs in data/ when the app first runs
 olist.db
+
+# Excluded: exceeds GitHub's 25MB browser-upload limit, and not needed by this app
+data/olist_geolocation_dataset.csv
 
 # Environment / secrets
 .env
