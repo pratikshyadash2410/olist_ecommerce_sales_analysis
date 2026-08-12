@@ -5,7 +5,9 @@ import altair as alt
 import google.generativeai as genai
 import os
 from build_database import build_database
+import datetime
 
+# --- CONFIGURATION & PATHS ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "olist.db")
 
@@ -14,30 +16,20 @@ st.set_page_config(page_title="Olist AI Data Assistant", layout="wide")
 st.title("🤖 Olist E-Commerce AI Data Assistant")
 st.write("Ask business questions in plain English — AI converts to SQL, runs it, visualizes data and explains results.")
 
-# Always rebuild the database fresh on startup — this guarantees correct data
-# and avoids any stale/corrupt olist.db lingering from earlier deploy attempts.
-with st.spinner("Setting up the database..."):
-    build_database()
-
-# Built-in diagnostic panel — shows exactly what's in the database right here,
-# no need to dig through server logs.
-with st.expander("🔍 Database Debug Info (click to expand)"):
-    debug_conn = sqlite3.connect(DB_PATH)
-    debug_cursor = debug_conn.cursor()
-    debug_cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    debug_tables = debug_cursor.fetchall()
-    st.write(f"**Tables found:** {[t[0] for t in debug_tables]}")
-    for (table,) in debug_tables:
-        debug_cursor.execute(f"SELECT COUNT(*) FROM {table}")
-        count = debug_cursor.fetchone()[0]
-        st.write(f"- `{table}`: {count} rows")
-    try:
-        debug_cursor.execute("SELECT order_purchase_timestamp FROM orders LIMIT 3")
-        sample_timestamps = debug_cursor.fetchall()
-        st.write(f"**Sample order_purchase_timestamp values:** {sample_timestamps}")
-    except Exception as e:
-        st.write(f"Could not read order_purchase_timestamp: {e}")
-    debug_conn.close()
+# Build the database from the bundled CSVs the very first time the app runs
+if not os.path.exists(DB_PATH):
+    with st.spinner("Setting up the database for the first time (only happens once)..."):
+        try:
+            build_database()
+            if os.path.exists(DB_PATH) and os.path.getsize(DB_PATH) > 0:
+                st.success("✅ Database built successfully.")
+                st.rerun()
+            else:
+                st.error("Failed to create database.")
+                st.stop()
+        except Exception as e:
+            st.error(f"Error building database: {e}")
+            st.stop()
 
 # Sidebar for API Key
 st.sidebar.header("Configuration")
@@ -51,6 +43,7 @@ if not api_key:
 genai.configure(api_key=api_key)
 
 
+# --- HELPERS ---
 def generate_with_fallback(prompt):
     candidate_models = [
         "gemini-2.5-flash-lite",
@@ -87,9 +80,10 @@ def get_db_schema():
     return schema_text
 
 
+# --- VISUALIZATION ENGINE (DEDICATED ALTAIR) ---
 def render_visualization(df_result):
-    """Auto-picks the right chart type based on what the query actually returned,
-    so the visualization matches the shape of the business question asked."""
+    """Auto-picks the right chart type based on what the query actually returned.
+    Uses explicit Altair for Bar and Line charts for maximum reliability."""
     if df_result.empty:
         st.info("No rows returned, nothing to chart.")
         return
@@ -97,77 +91,120 @@ def render_visualization(df_result):
     st.subheader("3. Data Visualization")
 
     try:
-        # Sanitize column names for charting — Vega-Lite treats "." in a field
-        # name as nested property access, and chokes on "(" ")" too, so raw
-        # SQL aliases like "SUM(t.payment_value)" silently break the chart.
-        # Rename to safe names here, but keep the original names as axis titles.
-        original_columns = list(df_result.columns)
-        safe_names = {
-            col: col.replace("(", "_").replace(")", "_").replace(".", "_").replace(" ", "_")
-            for col in original_columns
-        }
-        df_result = df_result.rename(columns=safe_names)
-        title_lookup = {safe: original for original, safe in safe_names.items()}
+        # Step 0: Create a safe copy and sanitize column names (dots -> underscores)
+        # This is crucial for Altair to avoid "field not found" errors on aggregate names
+        df_plot = df_result.copy()
+        safe_col_map = {col: col.replace('.', '_') for col in df_plot.columns}
+        df_plot.rename(columns=safe_col_map, inplace=True)
+        
+        # Step 1: Detect column types explicitly from sanitized dataframe
+        numeric_cols = df_plot.select_dtypes(include=["number"]).columns.tolist()
+        non_numeric_cols = df_plot.select_dtypes(exclude=["number"]).columns.tolist()
 
-        numeric_cols = df_result.select_dtypes(include=["number"]).columns.tolist()
-        other_cols = df_result.select_dtypes(exclude=["number"]).columns.tolist()
-
-        # Detect a date/time-like column among the non-numeric ones
-        date_col = None
-        for col in other_cols:
-            parsed = pd.to_datetime(df_result[col], errors="coerce")
-            if parsed.notna().mean() > 0.8:  # most values parse as dates
-                date_col = col
+        # Isolate the logic to find the trend/time column among non-numeric ones
+        potential_trend_col = None
+        # Priority 1: If AI named a column explicitly with 'month', 'year', 'day', 'trend'
+        for col in df_plot.columns:
+            if any(x in col.lower() for x in ['month', 'year', 'day', 'trend', 'date', 'period']):
+                potential_trend_col = col
                 break
+        
+        # Priority 2: Try standard date parsing among other non-numeric columns
+        if not potential_trend_col and non_numeric_cols:
+            for col in non_numeric_cols:
+                parsed = pd.to_datetime(df_plot[col], errors="coerce")
+                if parsed.notna().mean() > 0.8:  # most values parse as dates
+                    potential_trend_col = col
+                    break
 
-        if len(other_cols) == 0 and len(df_result) == 1:
-            # Only truly numeric, single-row results count as a KPI
-            # (e.g. "what is total revenue?", "average order value")
-            for col in df_result.columns:
-                st.metric(label=col, value=df_result[col].iloc[0])
+        # Step 2: Handle Visualization Based on Shape
 
-        elif date_col and numeric_cols:
-            # Time-based question -> line chart shows the trend
-            chart_df = df_result[[date_col] + numeric_cols].copy()
-            chart_df[date_col] = pd.to_datetime(chart_df[date_col], errors="coerce")
-            chart_df = chart_df.dropna(subset=[date_col]).sort_values(date_col)
-            chart_df = chart_df.set_index(date_col)
-            st.line_chart(chart_df)
+        # A) KPI (Single Value Result)
+        if len(non_numeric_cols) == 0 and len(df_plot) == 1:
+            for col in df_plot.columns:
+                st.metric(label=col.replace('_', ' ').title(), value=df_plot[col].iloc[0])
 
-        elif other_cols and numeric_cols:
-            # Category-based question, e.g. "top states by revenue" -> bar chart
-            category_col = other_cols[0]
+        # B) Line Chart (Explicit Altair for Trend Over Time)
+        elif potential_trend_col and numeric_cols:
+            x_axis = potential_trend_col
+            y_axis = numeric_cols[0] # Use first numeric column as metric
+            
+            # CRITICAL Step: SQLite outputs dates as formatted strings ('2018-05').
+            # Streamlit/Altair need them as proper datetime objects for chronological plotting.
+            try:
+                # Force datetime conversion
+                df_plot[x_axis] = pd.to_datetime(df_plot[x_axis])
+                
+                # Sort Chronologically (mandatory for meaningful lines)
+                df_trend = df_plot.dropna(subset=[x_axis]).sort_values(x_axis)
+                
+                # Explicit Altair Line Chart Definition
+                line_chart = (
+                    alt.Chart(df_trend)
+                    .mark_line(point=True) # Line with small points for clarity
+                    .encode(
+                        x=alt.X(f"{x_axis}:T", title=x_axis.replace('_', ' ').title()), # :T means Temporal/Time data
+                        y=alt.Y(f"{y_axis}:Q", title=y_axis.replace('_', ' ').title()), # :Q means Quantitative data
+                        tooltip=[
+                            alt.Tooltip(f"{x_axis}:T", format="%Y-%m-%d"), 
+                            alt.Tooltip(f"{y_axis}:Q", format=",.2f") # formatted numeric tooltip
+                        ]
+                    )
+                    .interactive() # Enable zoom/pan
+                    .properties(height=400) # Ensure a decent height
+                )
+                
+                st.altair_chart(line_chart, use_container_width=True)
+                
+            except Exception as e:
+                st.warning(f"Trend data detected ({x_axis}), but chronological date conversion failed ({e}). Here is a fallback Bar Chart instead.")
+                # Fallback to bar if date conversion fails
+                chart_df = df_plot.set_index(x_axis)[[y_axis]].sort_index()
+                st.bar_chart(chart_df)
+
+        # C) Bar Chart (Explicit Altair for Categorical Comparison)
+        elif non_numeric_cols and numeric_cols:
+            category_col = non_numeric_cols[0]
             value_col = numeric_cols[0]
+            
+            # Limit to manageable top categories
             chart_df = (
-                df_result.groupby(category_col)[value_col]
+                df_plot.groupby(category_col)[value_col]
                 .sum()
                 .sort_values(ascending=False)
                 .head(15)
                 .reset_index()
             )
-            # st.bar_chart re-sorts categories alphabetically, ignoring our order —
-            # use Altair directly and force the x-axis to sort by value (descending)
+            
+            # Explicit Altair Bar Chart Definition with proper sorting
             bar_chart = (
                 alt.Chart(chart_df)
                 .mark_bar()
                 .encode(
-                    x=alt.X(f"{category_col}:N", sort="-y", title=title_lookup.get(category_col, category_col)),
-                    y=alt.Y(f"{value_col}:Q", title=title_lookup.get(value_col, value_col)),
+                    x=alt.X(f"{category_col}:N", sort="-y", title=category_col.replace('_', ' ').title()), # :N means Nominal/Categorical
+                    y=alt.Y(f"{value_col}:Q", title=value_col.replace('_', ' ').title()),
+                    tooltip=[
+                        alt.Tooltip(f"{category_col}:N"), 
+                        alt.Tooltip(f"{value_col}:Q", format=",.2f")
+                    ]
                 )
+                .interactive()
+                .properties(height=400)
             )
             st.altair_chart(bar_chart, use_container_width=True)
 
+        # D) Scatter Plot (Two Numeric Columns)
         elif len(numeric_cols) >= 2:
-            # Two numeric columns, no category -> scatter shows the relationship
-            st.scatter_chart(df_result[numeric_cols[:2]])
+            st.scatter_chart(df_plot[numeric_cols[:2]])
 
         else:
             st.info("This result doesn't map cleanly to a chart — see the table above.")
 
     except Exception as chart_error:
-        st.warning(f"Couldn't generate a chart for this result, but your data and insight are still shown. ({chart_error})")
+        st.warning(f"Couldn't generate a chart for this result. It might have complex data relationships. ({chart_error})")
 
 
+# --- EXAMPLES & USER INPUT ---
 EXAMPLE_QUESTIONS = [
     "Top 10 customer states by revenue",
     "Top 10 product categories by number of orders",
@@ -175,28 +212,23 @@ EXAMPLE_QUESTIONS = [
     "What is the average order value?",
 ]
 
-if "user_query" not in st.session_state:
-    st.session_state.user_query = "top 10 customer states by revenue"
+if "current_question" not in st.session_state:
+    st.session_state.current_question = EXAMPLE_QUESTIONS[0]
 
 st.write("**Try an example:**")
 example_cols = st.columns(len(EXAMPLE_QUESTIONS))
 for col, question in zip(example_cols, EXAMPLE_QUESTIONS):
     if col.button(question, use_container_width=True):
-        st.session_state.user_query = question
+        st.session_state.current_question = question
 
-user_query = st.text_input("Enter your business question:", key="user_query")
+user_query = st.text_input("Enter your business question:", key="current_question")
 
+# --- MAIN ANALYSIS LOOP ---
 if st.button("Analyze Query"):
     schema_info = get_db_schema()
 
     if not schema_info.strip():
-        st.error("Database has no tables. This usually means the CSV filenames in your data/ folder don't match what build_database.py expects. Delete olist.db and reboot the app to rebuild it.")
-        data_folder = os.path.join(BASE_DIR, "data")
-        try:
-            files_found = os.listdir(data_folder)
-            st.write(f"**Debug — files found in `data/` folder:** {files_found}")
-        except Exception as e:
-            st.write(f"**Debug — couldn't read `data/` folder:** {e}")
+        st.error("Database has no tables. Delete olist.db and reload this page.")
         st.stop()
 
     sql_prompt = f"""
@@ -207,7 +239,7 @@ if st.button("Analyze Query"):
     Rules:
     - Output ONLY raw executable SQL code.
     - Do NOT wrap in ```sql or markdown fences.
-    - If the question asks about a trend over time (monthly, yearly, daily, etc.), extract the period using SQLite's strftime function (e.g. strftime('%Y-%m', date_column) AS month), GROUP BY that extracted period, and ORDER BY it chronologically. Never collapse a trend question into a single aggregate row.
+    - If the question asks about a trend over time (monthly, yearly, daily, etc.), extract the period using SQLite's strftime function (e.g. strftime('%Y-%m', date_column) AS period), GROUP BY that extracted period, and ORDER BY it chronologically. Use 'period' or 'date' in the alias name for clarity.
     - User Question: {user_query}
     """
 
@@ -227,22 +259,23 @@ if st.button("Analyze Query"):
         st.subheader("2. Query Output Data")
         st.dataframe(df_result)
 
-        # Step 3: Visualization — isolated so a chart issue never blocks Step 4 below
+        # Step 3: Visualization — explicit Altair integration
         render_visualization(df_result)
 
         # Step 4: Business Insights
-        insight_prompt = f"""
-        User Question: "{user_query}"
-        Data Results: {df_result.head(10).to_dict(orient='records')}
+        if not df_result.empty:
+            insight_prompt = f"""
+            User Question: "{user_query}"
+            Data Results: {df_result.head(10).to_dict(orient='records')}
 
-        Acting as a Business Analyst, provide a concise business insight in exactly 5 lines based strictly on these query results. Each line should be a short, distinct point (e.g. the headline finding, a notable pattern, a possible business implication, a caveat or limitation, and a suggested next step).
-        """
+            Acting as a Business Analyst, provide a concise business insight in exactly 5 lines based strictly on these query results. Each line should be a short, distinct point (e.g. headline finding, pattern, implication, caveat, next step).
+            """
 
-        with st.spinner("💡 Analyzing results and generating insights..."):
-            insight_response_text = generate_with_fallback(insight_prompt)
+            with st.spinner("💡 Analyzing results and generating insights..."):
+                insight_response_text = generate_with_fallback(insight_prompt)
 
-        st.subheader("4. AI Business Insight")
-        st.success(insight_response_text)
+            st.subheader("4. AI Business Insight")
+            st.success(insight_response_text)
 
     except Exception as e:
         st.error(f"Error executing query: {e}")
