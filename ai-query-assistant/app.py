@@ -12,7 +12,7 @@ DB_PATH = os.path.join(BASE_DIR, "olist.db")
 # Page Configuration
 st.set_page_config(page_title="Olist AI Data Assistant", layout="wide")
 st.title("🤖 Olist E-Commerce AI Data Assistant")
-st.write("Ask business questions in plain English — AI converts to SQL, runs it, visualizes data and explains results.")
+st.write("Ask business questions in plain English — AI converts to SQL, runs it, visualizes data, and explains results.")
 
 # Build the database from the bundled CSVs the very first time the app runs
 if not os.path.exists(DB_PATH):
@@ -88,8 +88,9 @@ def render_visualization(df_result):
                 date_col = col
                 break
 
-        if len(df_result) == 1 and len(df_result.columns) <= 2:
-            # Single-value answer, e.g. "what is total revenue?" -> KPI, not a chart
+        if len(other_cols) == 0 and len(df_result) == 1:
+            # Only truly numeric, single-row results count as a KPI
+            # (e.g. "what is total revenue?", "average order value")
             for col in df_result.columns:
                 st.metric(label=col, value=df_result[col].iloc[0])
 
@@ -174,6 +175,7 @@ if st.button("Analyze Query"):
     Rules:
     - Output ONLY raw executable SQL code.
     - Do NOT wrap in ```sql or markdown fences.
+    - If the question asks about a trend over time (monthly, yearly, daily, etc.), extract the period using SQLite's strftime function (e.g. strftime('%Y-%m', date_column) AS month), GROUP BY that extracted period, and ORDER BY it chronologically. Never collapse a trend question into a single aggregate row.
     - User Question: {user_query}
     """
 
@@ -201,8 +203,7 @@ if st.button("Analyze Query"):
         User Question: "{user_query}"
         Data Results: {df_result.head(10).to_dict(orient='records')}
 
-        Acting as a Business Analyst, provide a concise 5-sentence business insight based strictly on these query results. Each line should be a short, distinct point (e.g. the headline finding, a notable pattern, a possible business implication, a caveat or limitation, and a suggested next step).
-
+        Acting as a Business Analyst, provide a concise business insight in exactly 5 lines based strictly on these query results. Each line should be a short, distinct point (e.g. the headline finding, a notable pattern, a possible business implication, a caveat or limitation, and a suggested next step).
         """
 
         with st.spinner("💡 Analyzing results and generating insights..."):
