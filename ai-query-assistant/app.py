@@ -251,6 +251,16 @@ if st.button("Analyze Query"):
     - Output ONLY raw executable SQL code.
     - Do NOT wrap in ```sql or markdown fences.
     - If the question asks about a trend over time (monthly, yearly, daily, etc.), extract the period using SQLite's strftime function (e.g. strftime('%Y-%m', date_column) AS month), GROUP BY that extracted period, and ORDER BY it chronologically. Never collapse a trend question into a single aggregate row.
+    # NEW RULE — THE CRUCIAL LINE CHART FIX:
+    # If the user question asks about a trend over time (monthly, yearly, daily, etc.),
+    # assume timestamp columns are stored as integer UNIX timestamps (e.g., seconds).
+    # You MUST first convert that integer to a standard SQLite datetime string using:
+    # datetime(timestamp_column, 'unixepoch').
+    # THEN, wrap that conversion with strftime to extract the specific period.
+    # Updated pattern for a monthly trend: strftime('%Y-%m', datetime(date_column, 'unixepoch')) AS period.
+    # Always GROUP BY that extracted period and ORDER BY it chronologically. Use 'period' or 'date' as the alias for clarity.
+    # Never collapse a trend question into a single aggregrate row.
+    # END NEW RULE
     - User Question: {user_query}
     """
 
