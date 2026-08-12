@@ -156,6 +156,10 @@ user_query = st.text_input("Enter your business question:", key="user_query")
 if st.button("Analyze Query"):
     schema_info = get_db_schema()
 
+    if not schema_info.strip():
+        st.error("Database has no tables. This usually means the CSV filenames in your data/ folder don't match what build_database.py expects. Delete olist.db and reboot the app to rebuild it.")
+        st.stop()
+
     sql_prompt = f"""
     You are an expert SQL analyst. Convert the user question into a valid SQLite query based on this database schema:
 
