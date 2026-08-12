@@ -12,12 +12,12 @@ DB_PATH = os.path.join(BASE_DIR, "olist.db")
 # Page Configuration
 st.set_page_config(page_title="Olist AI Data Assistant", layout="wide")
 st.title("🤖 Olist E-Commerce AI Data Assistant")
-st.write("Ask business questions in plain English — AI converts to SQL, runs it, visualizes data, and explains results.")
+st.write("Ask business questions in plain English — AI converts to SQL, runs it, visualizes data and explains results.")
 
-# Build the database from the bundled CSVs the very first time the app runs
-if not os.path.exists(DB_PATH):
-    with st.spinner("Setting up the database for the first time (only happens once)..."):
-        build_database()
+# Always rebuild the database fresh on startup — this guarantees correct data
+# and avoids any stale/corrupt olist.db lingering from earlier deploy attempts.
+with st.spinner("Setting up the database..."):
+    build_database()
 
 # Sidebar for API Key
 st.sidebar.header("Configuration")
