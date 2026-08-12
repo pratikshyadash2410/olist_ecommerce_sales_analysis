@@ -19,6 +19,26 @@ st.write("Ask business questions in plain English — AI converts to SQL, runs i
 with st.spinner("Setting up the database..."):
     build_database()
 
+# Built-in diagnostic panel — shows exactly what's in the database right here,
+# no need to dig through server logs.
+with st.expander("🔍 Database Debug Info (click to expand)"):
+    debug_conn = sqlite3.connect(DB_PATH)
+    debug_cursor = debug_conn.cursor()
+    debug_cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    debug_tables = debug_cursor.fetchall()
+    st.write(f"**Tables found:** {[t[0] for t in debug_tables]}")
+    for (table,) in debug_tables:
+        debug_cursor.execute(f"SELECT COUNT(*) FROM {table}")
+        count = debug_cursor.fetchone()[0]
+        st.write(f"- `{table}`: {count} rows")
+    try:
+        debug_cursor.execute("SELECT order_purchase_timestamp FROM orders LIMIT 3")
+        sample_timestamps = debug_cursor.fetchall()
+        st.write(f"**Sample order_purchase_timestamp values:** {sample_timestamps}")
+    except Exception as e:
+        st.write(f"Could not read order_purchase_timestamp: {e}")
+    debug_conn.close()
+
 # Sidebar for API Key
 st.sidebar.header("Configuration")
 api_key = st.sidebar.text_input("Enter your Gemini API Key:", type="password")
@@ -77,6 +97,18 @@ def render_visualization(df_result):
     st.subheader("3. Data Visualization")
 
     try:
+        # Sanitize column names for charting — Vega-Lite treats "." in a field
+        # name as nested property access, and chokes on "(" ")" too, so raw
+        # SQL aliases like "SUM(t.payment_value)" silently break the chart.
+        # Rename to safe names here, but keep the original names as axis titles.
+        original_columns = list(df_result.columns)
+        safe_names = {
+            col: col.replace("(", "_").replace(")", "_").replace(".", "_").replace(" ", "_")
+            for col in original_columns
+        }
+        df_result = df_result.rename(columns=safe_names)
+        title_lookup = {safe: original for original, safe in safe_names.items()}
+
         numeric_cols = df_result.select_dtypes(include=["number"]).columns.tolist()
         other_cols = df_result.select_dtypes(exclude=["number"]).columns.tolist()
 
@@ -119,8 +151,8 @@ def render_visualization(df_result):
                 alt.Chart(chart_df)
                 .mark_bar()
                 .encode(
-                    x=alt.X(f"{category_col}:N", sort="-y", title=category_col),
-                    y=alt.Y(f"{value_col}:Q", title=value_col),
+                    x=alt.X(f"{category_col}:N", sort="-y", title=title_lookup.get(category_col, category_col)),
+                    y=alt.Y(f"{value_col}:Q", title=title_lookup.get(value_col, value_col)),
                 )
             )
             st.altair_chart(bar_chart, use_container_width=True)
