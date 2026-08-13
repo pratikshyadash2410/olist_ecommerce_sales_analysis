@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import streamlit as st
 import altair as alt
+import sqlparse
 import google.generativeai as genai
 from build_database import build_database
 
@@ -187,8 +188,23 @@ def render_visualization(df_result):
                 st.altair_chart(bar_chart, use_container_width=True)
 
         elif len(numeric_cols) >= 2:
-            # Two numeric columns, no category -> scatter shows the relationship
-            st.scatter_chart(df_result[numeric_cols[:2]])
+            # Two numeric columns, no category -> scatter shows the relationship.
+            # zero=False avoids forcing a 0 baseline, which looks wrong for
+            # values like month numbers that don't naturally start at 0.
+            x_col, y_col = numeric_cols[0], numeric_cols[1]
+            scatter_chart = (
+                alt.Chart(df_result)
+                .mark_circle(size=80)
+                .encode(
+                    x=alt.X(f"{x_col}:Q", scale=alt.Scale(zero=False), title=title_lookup.get(x_col, x_col)),
+                    y=alt.Y(f"{y_col}:Q", scale=alt.Scale(zero=False), title=title_lookup.get(y_col, y_col)),
+                    tooltip=[
+                        alt.Tooltip(f"{x_col}:Q", title=title_lookup.get(x_col, x_col)),
+                        alt.Tooltip(f"{y_col}:Q", title=title_lookup.get(y_col, y_col), format=",.2f"),
+                    ],
+                )
+            )
+            st.altair_chart(scatter_chart, use_container_width=True)
 
         else:
             st.info("This result doesn't map cleanly to a chart — see the table above.")
@@ -233,7 +249,7 @@ if st.button("Analyze Query"):
     Rules:
     - Output ONLY raw executable SQL code.
     - Do NOT wrap in ```sql or markdown fences.
-    - If the question asks about a trend over time (monthly, yearly, etc.) and a column ending in '_year_month' exists in the schema (e.g. order_purchase_timestamp_year_month), use that column directly with GROUP BY and ORDER BY it — do NOT use strftime(). Only use strftime() if no such pre-computed column is available.
+    - If the question involves grouping or displaying data by month or year in any way, and a column ending in '_year_month' exists in the schema (e.g. order_purchase_timestamp_year_month), always use that column directly with GROUP BY and ORDER BY it — do NOT use strftime() and do NOT extract a raw numeric month (e.g. do NOT use strftime('%m', ...) alone). Only use strftime() if no such pre-computed column is available.
     - User Question: {user_query}
     """
 
@@ -243,14 +259,17 @@ if st.button("Analyze Query"):
             clean_sql = sql_response_text.strip().replace("```sql", "").replace("```", "").strip()
 
         st.subheader("1. Generated SQL Query")
-        st.code(clean_sql, language="sql")
+        formatted_sql = sqlparse.format(clean_sql, reindent=True, keyword_case="upper", indent_width=4)
+        st.code(formatted_sql, language="sql")
 
         conn = sqlite3.connect(DB_PATH)
         df_result = pd.read_sql_query(clean_sql, conn)
         conn.close()
 
         st.subheader("2. Query Output Data")
-        st.dataframe(df_result)
+        df_display = df_result.copy()
+        df_display.index = df_display.index + 1
+        st.dataframe(df_display)
 
         render_visualization(df_result)
 
