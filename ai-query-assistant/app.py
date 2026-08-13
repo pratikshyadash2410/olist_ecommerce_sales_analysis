@@ -15,7 +15,7 @@ DB_PATH = os.path.join(BASE_DIR, "olist.db")
 # ---------------------------------------------------------------------------
 st.set_page_config(page_title="Olist AI Data Assistant", layout="wide")
 st.title("🤖 Olist E-Commerce AI Data Assistant")
-st.write("Ask business questions in plain English — AI converts to SQL, runs it, visualizes data and explains results.")
+st.write("Ask business questions in plain English — AI converts to SQL, runs it, visualizes data, and explains results.")
 
 # Database is rebuilt fresh from the CSVs on every startup — cheap (a few
 # seconds) and guarantees correct, up-to-date data regardless of server state.
@@ -117,7 +117,12 @@ def render_visualization(df_result):
         if len(other_cols) == 0 and len(df_result) == 1:
             # Purely numeric, single-row result (e.g. "what is total revenue?")
             for col in df_result.columns:
-                st.metric(label=title_lookup.get(col, col), value=df_result[col].iloc[0])
+                raw_value = df_result[col].iloc[0]
+                if isinstance(raw_value, (int, float)):
+                    display_value = f"{raw_value:,.2f}"
+                else:
+                    display_value = raw_value
+                st.metric(label=title_lookup.get(col, col), value=display_value)
 
         elif date_col and numeric_cols:
             # Time-based question -> line chart shows the trend
@@ -219,7 +224,8 @@ def render_visualization(df_result):
 EXAMPLE_QUESTIONS = [
     "Top 10 customer states by revenue",
     "What are the top 5 payment types used?",
-    "Show monthly revenue trend",
+    "Top 10 product categories by revenue",
+    "Top 10 sellers by number of orders",
     "What is the average order value?",
 ]
 
