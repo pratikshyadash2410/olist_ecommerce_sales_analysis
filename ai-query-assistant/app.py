@@ -15,7 +15,7 @@ DB_PATH = os.path.join(BASE_DIR, "olist.db")
 # ---------------------------------------------------------------------------
 st.set_page_config(page_title="Olist AI Data Assistant", layout="wide")
 st.title("🤖 Olist E-Commerce AI Data Assistant")
-st.write("Ask business questions in plain English — AI converts to SQL, runs it, visualizes data, and explains results.")
+st.write("Ask business questions in plain English — AI converts to SQL, runs it, visualizes data and explains results.")
 
 # Database is rebuilt fresh from the CSVs on every startup — cheap (a few
 # seconds) and guarantees correct, up-to-date data regardless of server state.
@@ -222,9 +222,10 @@ def render_visualization(df_result):
 # Main query flow
 # ---------------------------------------------------------------------------
 EXAMPLE_QUESTIONS = [
-    "Which 5 states generate the highest revenue?",
+    "Top 10 customer states by revenue",
     "What are the top 5 payment types used?",
     "Top 10 product categories by revenue",
+    "Top 10 sellers by number of orders",
     "What is the average order value?",
 ]
 
@@ -266,6 +267,10 @@ if st.button("Analyze Query"):
         st.subheader("1. Generated SQL Query")
         formatted_sql = sqlparse.format(clean_sql, reindent=True, keyword_case="upper", indent_width=4)
         st.code(formatted_sql, language="sql")
+
+        if not clean_sql.strip().upper().startswith("SELECT"):
+            st.error("For safety, only read-only SELECT queries are allowed.")
+            st.stop()
 
         conn = sqlite3.connect(DB_PATH)
         df_result = pd.read_sql_query(clean_sql, conn)
