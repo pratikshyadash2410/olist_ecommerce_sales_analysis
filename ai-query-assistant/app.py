@@ -275,6 +275,11 @@ if st.button("Analyze Query"):
         df_result = pd.read_sql_query(clean_sql, conn)
         conn.close()
 
+        MAX_DISPLAY_ROWS = 1000
+        if len(df_result) > MAX_DISPLAY_ROWS:
+            st.info(f"Query returned {len(df_result)} rows — showing the first {MAX_DISPLAY_ROWS} to keep things fast.")
+            df_result = df_result.head(MAX_DISPLAY_ROWS)
+
         st.subheader("2. Query Output Data")
         df_display = df_result.copy()
         df_display.index = df_display.index + 1
