@@ -4,3 +4,5 @@ google-generativeai
 altair
 matplotlib
 seaborn
+plotly
+google-genai
