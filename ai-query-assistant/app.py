@@ -1,490 +1,271 @@
-import os
-import re
 import sqlite3
-from pathlib import Path
-
+import os
 import pandas as pd
-import plotly.express as px
 import streamlit as st
-from google import genai
+import altair as alt
+import google.generativeai as genai
+from build_database import build_database
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "olist.db")
+
+# ---------------------------------------------------------------------------
+# Page setup
+# ---------------------------------------------------------------------------
+st.set_page_config(page_title="Olist AI Data Assistant", layout="wide")
+st.title("🤖 Olist E-Commerce AI Data Assistant")
+st.write("Ask business questions in plain English — AI converts to SQL, runs it, visualizes data and explains results.")
+
+# Database is rebuilt fresh from the CSVs on every startup — cheap (a few
+# seconds) and guarantees correct, up-to-date data regardless of server state.
+with st.spinner("Setting up the database..."):
+    build_database()
+
+# ---------------------------------------------------------------------------
+# API key
+# ---------------------------------------------------------------------------
+st.sidebar.header("Configuration")
+api_key = st.sidebar.text_input("Enter your Gemini API Key:", type="password")
+
+if not api_key:
+    st.warning("👈 Please enter your free Gemini API Key in the sidebar to proceed.")
+    st.stop()
+
+genai.configure(api_key=api_key)
 
 
-# ============================================================
-# CONFIG
-# ============================================================
-
-st.set_page_config(
-    page_title="Olist AI Data Assistant",
-    page_icon="🛒",
-    layout="wide",
-)
-
-DB_PATH = Path(__file__).parent / "olist.db"
-GEMINI_MODEL = "gemini-2.5-flash"
-
-
-# ============================================================
-# DATABASE SCHEMA
-# ============================================================
-
-SCHEMA = """
-TABLE: customers
-- customer_id TEXT
-- customer_unique_id TEXT
-- customer_zip_code_prefix INTEGER
-- customer_city TEXT
-- customer_state TEXT
-
-TABLE: geolocation
-- geolocation_zip_code_prefix INTEGER
-- geolocation_lat REAL
-- geolocation_lng REAL
-- geolocation_city TEXT
-- geolocation_state TEXT
-
-TABLE: orders
-- order_id TEXT
-- customer_id TEXT
-- order_status TEXT
-- order_purchase_timestamp TEXT
-- order_purchase_timestamp_year_month TEXT -- pre-computed YYYY-MM
-- order_approved_at TEXT
-- order_delivered_carrier_date TEXT
-- order_delivered_customer_date TEXT
-- order_estimated_delivery_date TEXT
-
-TABLE: order_items
-- order_id TEXT
-- order_item_id INTEGER
-- product_id TEXT
-- seller_id TEXT
-- shipping_limit_date TEXT
-- price REAL
-- freight_value REAL
-
-TABLE: order_payments
-- order_id TEXT
-- payment_sequential INTEGER
-- payment_type TEXT
-- payment_installments INTEGER
-- payment_value REAL
-
-TABLE: order_reviews
-- review_id TEXT
-- order_id TEXT
-- review_score INTEGER
-- review_comment_title TEXT
-- review_comment_message TEXT
-- review_creation_date TEXT
-- review_answer_timestamp TEXT
-
-TABLE: products
-- product_id TEXT
-- product_category_name TEXT
-- product_name_lenght REAL
-- product_description_lenght REAL
-- product_photos_qty REAL
-- product_weight_g REAL
-- product_length_cm REAL
-- product_height_cm REAL
-- product_width_cm REAL
-
-TABLE: sellers
-- seller_id TEXT
-- seller_zip_code_prefix INTEGER
-- seller_city TEXT
-- seller_state TEXT
-
-TABLE: product_category_name_translation
-- product_category_name TEXT
-- product_category_name_english TEXT
-"""
-
-
-# ============================================================
-# GEMINI
-# ============================================================
-
-def get_gemini_client():
-    api_key = st.secrets.get(
-        "GEMINI_API_KEY",
-        os.getenv("GEMINI_API_KEY")
-    )
-
-    if not api_key:
-        st.error(
-            "GEMINI_API_KEY is missing. Add it in "
-            "Streamlit Cloud → Settings → Secrets."
-        )
-        st.stop()
-
-    return genai.Client(api_key=api_key)
-
-
-client = get_gemini_client()
-
-
-# ============================================================
-# SQLITE
-# ============================================================
-
-@st.cache_resource
-def get_connection():
-    return sqlite3.connect(
-        str(DB_PATH),
-        check_same_thread=False
-    )
-
-
-conn = get_connection()
-
-
-# ============================================================
-# GENERATE SQL
-# ============================================================
-
-def generate_sql(question):
-
-    prompt = f"""
-You are an expert SQLite data analyst working with the Brazilian
-Olist e-commerce dataset.
-
-Convert the user's natural-language question into ONE valid SQLite
-SELECT query.
-
-DATABASE SCHEMA:
-{SCHEMA}
-
-STRICT RULES:
-
-1. Return ONLY SQL.
-2. Do not use markdown code fences.
-3. Only generate SELECT or WITH ... SELECT queries.
-4. Never use INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, ATTACH,
-   DETACH, PRAGMA, VACUUM, or other database-changing commands.
-5. Use only tables and columns present in the schema.
-6. NEVER use SQLite strftime().
-7. NEVER extract month/year from order_purchase_timestamp at query time.
-8. For monthly analysis, ALWAYS use:
-   orders.order_purchase_timestamp_year_month
-9. That column already contains YYYY-MM values.
-10. For monthly trends, GROUP BY and ORDER BY the YYYY-MM column.
-11. For revenue from products, use order_items.price.
-12. When joining orders and order_items, use order_id.
-13. When joining orders and customers, use customer_id.
-14. When joining order_items and products, use product_id.
-15. When joining order_items and sellers, use seller_id.
-16. For English category names, join the translation table.
-17. Use COUNT(DISTINCT order_id) for order counts when joins may
-    duplicate orders.
-18. For top-N questions, use ORDER BY and LIMIT.
-19. Never invent tables or columns.
-
-MONTHLY ORDER EXAMPLE:
-
-SELECT
-    order_purchase_timestamp_year_month AS month,
-    COUNT(DISTINCT order_id) AS total_orders
-FROM orders
-GROUP BY order_purchase_timestamp_year_month
-ORDER BY order_purchase_timestamp_year_month;
-
-MONTHLY REVENUE EXAMPLE:
-
-SELECT
-    o.order_purchase_timestamp_year_month AS month,
-    ROUND(SUM(oi.price), 2) AS revenue
-FROM orders o
-JOIN order_items oi
-    ON o.order_id = oi.order_id
-GROUP BY o.order_purchase_timestamp_year_month
-ORDER BY o.order_purchase_timestamp_year_month;
-
-USER QUESTION:
-{question}
-"""
-
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=prompt
-    )
-
-    sql = response.text.strip()
-
-    sql = re.sub(
-        r"^```(?:sql)?\s*",
-        "",
-        sql,
-        flags=re.IGNORECASE
-    )
-    sql = re.sub(r"\s*```$", "", sql)
-
-    return sql.strip()
-
-
-# ============================================================
-# SQL SAFETY
-# ============================================================
-
-def validate_sql(sql):
-
-    cleaned = sql.strip().lower()
-
-    if not cleaned:
-        return False, "Gemini returned an empty SQL query."
-
-    if not (
-        cleaned.startswith("select")
-        or cleaned.startswith("with")
-    ):
-        return False, "Only SELECT queries are allowed."
-
-    forbidden = [
-        "insert ",
-        "update ",
-        "delete ",
-        "drop ",
-        "alter ",
-        "create ",
-        "attach ",
-        "detach ",
-        "pragma ",
-        "vacuum ",
-        "replace ",
+def generate_with_fallback(prompt):
+    candidate_models = [
+        "gemini-2.5-flash-lite",
+        "gemini-3.5-flash-lite",
+        "gemini-1.5-flash",
+        "gemini-flash",
     ]
-
-    for keyword in forbidden:
-        if keyword in cleaned:
-            return False, f"Blocked SQL keyword: {keyword.strip()}"
-
-    if "strftime" in cleaned:
-        return False, (
-            "strftime() is not allowed. Use "
-            "order_purchase_timestamp_year_month instead."
-        )
-
-    return True, None
+    last_error = None
+    for model_name in candidate_models:
+        try:
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(prompt)
+            return response.text
+        except Exception as e:
+            last_error = e
+            continue
+    raise last_error
 
 
-# ============================================================
-# RUN QUERY
-# ============================================================
+def get_db_schema():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    tables = cursor.fetchall()
 
-def execute_sql(sql):
+    schema_text = ""
+    for (table_name,) in tables:
+        cursor.execute(f"PRAGMA table_info({table_name});")
+        columns = [col[1] for col in cursor.fetchall()]
+        schema_text += f"Table: {table_name}\nColumns: {', '.join(columns)}\n\n"
 
-    valid, error = validate_sql(sql)
+    conn.close()
+    return schema_text
 
-    if not valid:
-        return pd.DataFrame(), error
+
+# ---------------------------------------------------------------------------
+# Visualization
+# ---------------------------------------------------------------------------
+def render_visualization(df_result):
+    """Auto-picks the right chart type based on what the query actually
+    returned, so the visualization matches the shape of the business
+    question asked:
+      - purely numeric, single row  -> KPI metric
+      - date/time column present    -> line chart (trend)
+      - category column, <=5 groups -> pie chart (proportions are clear)
+      - category column, >5 groups  -> bar chart (stays readable at scale)
+      - two numeric columns only    -> scatter chart
+    """
+    if df_result.empty:
+        st.info("No rows returned, nothing to chart.")
+        return
+
+    st.subheader("3. Data Visualization")
 
     try:
-        df = pd.read_sql_query(sql, conn)
-        return df, None
-    except Exception as exc:
-        return pd.DataFrame(), str(exc)
+        # Sanitize column names for charting — Vega-Lite treats "." in a
+        # field name as nested property access and chokes on "(" ")" too,
+        # so raw SQL aliases like "SUM(t.payment_value)" silently break
+        # charts. Rename to safe names here; original names still show
+        # as axis/tooltip titles via title_lookup.
+        original_columns = list(df_result.columns)
+        safe_names = {
+            col: col.replace("(", "_").replace(")", "_").replace(".", "_").replace(" ", "_")
+            for col in original_columns
+        }
+        df_result = df_result.rename(columns=safe_names)
+        title_lookup = {safe: original for original, safe in safe_names.items()}
 
+        numeric_cols = df_result.select_dtypes(include=["number"]).columns.tolist()
+        other_cols = df_result.select_dtypes(exclude=["number"]).columns.tolist()
 
-# ============================================================
-# AI INSIGHT
-# ============================================================
+        # Detect a date/time-like column among the non-numeric ones
+        date_col = None
+        for col in other_cols:
+            parsed = pd.to_datetime(df_result[col], errors="coerce")
+            if parsed.notna().mean() > 0.8:
+                date_col = col
+                break
 
-def generate_insight(question, df):
+        if len(other_cols) == 0 and len(df_result) == 1:
+            # Purely numeric, single-row result (e.g. "what is total revenue?")
+            for col in df_result.columns:
+                st.metric(label=title_lookup.get(col, col), value=df_result[col].iloc[0])
 
-    if df.empty:
-        return "No data was returned."
+        elif date_col and numeric_cols:
+            # Time-based question -> line chart shows the trend
+            value_col = numeric_cols[0]
+            chart_df = df_result[[date_col, value_col]].copy()
+            chart_df[date_col] = pd.to_datetime(chart_df[date_col], errors="coerce")
+            chart_df = chart_df.dropna(subset=[date_col]).sort_values(date_col)
 
-    preview = df.head(100).to_string(index=False)
+            line_chart = (
+                alt.Chart(chart_df)
+                .mark_line(point=True)
+                .encode(
+                    x=alt.X(f"{date_col}:T", title=title_lookup.get(date_col, date_col)),
+                    y=alt.Y(f"{value_col}:Q", title=title_lookup.get(value_col, value_col)),
+                    tooltip=[
+                        alt.Tooltip(f"{date_col}:T", title=title_lookup.get(date_col, date_col)),
+                        alt.Tooltip(f"{value_col}:Q", title=title_lookup.get(value_col, value_col), format=",.2f"),
+                    ],
+                )
+            )
+            st.altair_chart(line_chart, use_container_width=True)
 
-    prompt = f"""
-You are a business data analyst.
+        elif other_cols and numeric_cols:
+            # Category-based question, e.g. "top states by revenue"
+            category_col = other_cols[0]
+            value_col = numeric_cols[0]
+            chart_df = (
+                df_result.groupby(category_col)[value_col]
+                .sum()
+                .sort_values(ascending=False)
+                .head(15)
+                .reset_index()
+            )
+            category_title = title_lookup.get(category_col, category_col)
+            value_title = title_lookup.get(value_col, value_col)
 
-USER QUESTION:
-{question}
+            if len(chart_df) <= 5:
+                # Few categories -> a pie chart shows proportions clearly
+                pie_chart = (
+                    alt.Chart(chart_df)
+                    .mark_arc(innerRadius=60)
+                    .encode(
+                        theta=alt.Theta(f"{value_col}:Q"),
+                        color=alt.Color(f"{category_col}:N", title=category_title),
+                        tooltip=[
+                            alt.Tooltip(f"{category_col}:N", title=category_title),
+                            alt.Tooltip(f"{value_col}:Q", title=value_title, format=",.2f"),
+                        ],
+                    )
+                )
+                st.altair_chart(pie_chart, use_container_width=True)
+            else:
+                # More categories -> bar chart stays readable at this size.
+                # st.bar_chart re-sorts categories alphabetically, ignoring
+                # our order, so Altair is used directly with sort="-y".
+                bar_chart = (
+                    alt.Chart(chart_df)
+                    .mark_bar()
+                    .encode(
+                        x=alt.X(f"{category_col}:N", sort="-y", title=category_title),
+                        y=alt.Y(f"{value_col}:Q", title=value_title),
+                        tooltip=[
+                            alt.Tooltip(f"{category_col}:N", title=category_title),
+                            alt.Tooltip(f"{value_col}:Q", title=value_title, format=",.2f"),
+                        ],
+                    )
+                )
+                st.altair_chart(bar_chart, use_container_width=True)
 
-QUERY RESULT:
-{preview}
-
-Give a concise business insight based ONLY on the supplied result.
-
-Rules:
-- Do not invent numbers.
-- Mention important trends or comparisons.
-- If this is a monthly trend, identify increases, decreases,
-  fluctuations, or peaks.
-- Keep it to 2-4 bullet points.
-"""
-
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=prompt
-    )
-
-    return response.text.strip()
-
-
-# ============================================================
-# AUTOMATIC CHART
-# ============================================================
-
-def show_chart(df):
-
-    if df.empty or len(df.columns) < 2:
-        return
-
-    possible_x = [
-        "month",
-        "year_month",
-        "order_purchase_timestamp_year_month",
-        "date",
-        "year",
-    ]
-
-    x_col = next(
-        (col for col in possible_x if col in df.columns),
-        None
-    )
-
-    if x_col is None:
-        return
-
-    numeric_cols = df.select_dtypes(
-        include="number"
-    ).columns.tolist()
-
-    if not numeric_cols:
-        return
-
-    y_col = numeric_cols[0]
-
-    chart_df = df.copy()
-
-    if x_col in [
-        "month",
-        "year_month",
-        "order_purchase_timestamp_year_month"
-    ]:
-        chart_df[x_col] = pd.to_datetime(
-            chart_df[x_col].astype(str),
-            format="%Y-%m",
-            errors="coerce"
-        )
-    else:
-        chart_df[x_col] = pd.to_datetime(
-            chart_df[x_col],
-            errors="coerce"
-        )
-
-    chart_df = chart_df.dropna(subset=[x_col])
-    chart_df = chart_df.sort_values(x_col)
-
-    if chart_df.empty:
-        return
-
-    fig = px.line(
-        chart_df,
-        x=x_col,
-        y=y_col,
-        markers=True,
-        title=f"{y_col.replace('_', ' ').title()} Trend"
-    )
-
-    fig.update_layout(
-        xaxis_title="",
-        yaxis_title=y_col.replace("_", " ").title(),
-        hovermode="x unified"
-    )
-
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
-
-
-# ============================================================
-# APP UI
-# ============================================================
-
-st.title("🛒 Olist AI Data Assistant")
-
-st.write(
-    "Ask questions about Olist e-commerce data in plain English. "
-    "Gemini converts your question into SQL, runs it on SQLite, "
-    "and generates a business insight."
-)
-
-
-with st.sidebar:
-
-    st.header("📊 Database")
-
-    st.success("SQLite database connected")
-
-    st.write("9 Olist tables")
-
-    st.divider()
-
-    st.subheader("Try asking:")
-
-    examples = [
-        "Show me the monthly order trend",
-        "What is the monthly revenue trend?",
-        "Which product categories generate the most revenue?",
-        "Which states have the most customers?",
-        "What are the most common payment methods?",
-        "What is the average review score?",
-        "Which sellers generate the highest revenue?",
-    ]
-
-    for example in examples:
-        st.caption(f"• {example}")
-
-
-question = st.text_input(
-    "Ask a business question",
-    placeholder="Example: Show me the monthly order trend"
-)
-
-
-if st.button("🔍 Analyze", type="primary"):
-
-    if not question.strip():
-
-        st.warning("Please enter a question.")
-
-    else:
-
-        with st.spinner("🤖 Generating SQL..."):
-            sql = generate_sql(question)
-
-        with st.expander("🧠 Generated SQL"):
-            st.code(sql, language="sql")
-
-        with st.spinner("📊 Running query..."):
-            df, error = execute_sql(sql)
-
-        if error:
-
-            st.error("Query could not be executed.")
-            st.code(error)
-
-        elif df.empty:
-
-            st.warning("The query returned no rows.")
+        elif len(numeric_cols) >= 2:
+            # Two numeric columns, no category -> scatter shows the relationship
+            st.scatter_chart(df_result[numeric_cols[:2]])
 
         else:
+            st.info("This result doesn't map cleanly to a chart — see the table above.")
 
-            st.subheader("📋 Results")
+    except Exception as chart_error:
+        st.warning(f"Couldn't generate a chart for this result, but your data and insight are still shown. ({chart_error})")
 
-            st.dataframe(
-                df,
-                use_container_width=True,
-                hide_index=True
-            )
 
-            show_chart(df)
+# ---------------------------------------------------------------------------
+# Main query flow
+# ---------------------------------------------------------------------------
+EXAMPLE_QUESTIONS = [
+    "Top 10 customer states by revenue",
+    "What are the top 5 payment types used?",
+    "Show monthly revenue trend",
+    "What is the average order value?",
+]
 
-            with st.spinner("💡 Generating business insight..."):
-                insight = generate_insight(question, df)
+if "user_query" not in st.session_state:
+    st.session_state.user_query = "top 10 customer states by revenue"
 
-            st.subheader("💡 AI Insight")
-            st.markdown(insight)
+st.write("**Try an example:**")
+example_cols = st.columns(len(EXAMPLE_QUESTIONS))
+for col, question in zip(example_cols, EXAMPLE_QUESTIONS):
+    if col.button(question, use_container_width=True):
+        st.session_state.user_query = question
+
+user_query = st.text_input("Enter your business question:", key="user_query")
+
+if st.button("Analyze Query"):
+    schema_info = get_db_schema()
+
+    if not schema_info.strip():
+        st.error("Database has no tables. Try rebooting the app to rebuild it.")
+        st.stop()
+
+    sql_prompt = f"""
+    You are an expert SQL analyst. Convert the user question into a valid SQLite query based on this database schema:
+
+    {schema_info}
+
+    Rules:
+    - Output ONLY raw executable SQL code.
+    - Do NOT wrap in ```sql or markdown fences.
+    - If the question asks about a trend over time (monthly, yearly, etc.) and a column ending in '_year_month' exists in the schema (e.g. order_purchase_timestamp_year_month), use that column directly with GROUP BY and ORDER BY it — do NOT use strftime(). Only use strftime() if no such pre-computed column is available.
+    - User Question: {user_query}
+    """
+
+    try:
+        with st.spinner("🤖 Converting your question to SQL..."):
+            sql_response_text = generate_with_fallback(sql_prompt)
+            clean_sql = sql_response_text.strip().replace("```sql", "").replace("```", "").strip()
+
+        st.subheader("1. Generated SQL Query")
+        st.code(clean_sql, language="sql")
+
+        conn = sqlite3.connect(DB_PATH)
+        df_result = pd.read_sql_query(clean_sql, conn)
+        conn.close()
+
+        st.subheader("2. Query Output Data")
+        st.dataframe(df_result)
+
+        render_visualization(df_result)
+
+        insight_prompt = f"""
+        User Question: "{user_query}"
+        Data Results: {df_result.head(10).to_dict(orient='records')}
+
+        Acting as a Business Analyst, write a concise, professional insight in exactly 5 sentences as a single flowing paragraph (not bullet points or numbered lines). Cover, in natural analyst commentary: the headline finding, a notable pattern or comparison, a business implication, a caveat or limitation in the data, and a suggested next step.
+        """
+
+        with st.spinner("💡 Analyzing results and generating insights..."):
+            insight_response_text = generate_with_fallback(insight_prompt)
+
+        st.subheader("4. AI Business Insight")
+        st.success(insight_response_text)
+
+    except Exception as e:
+        st.error(f"Error executing query: {e}")
