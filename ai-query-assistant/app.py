@@ -12,7 +12,7 @@ DB_PATH = os.path.join(BASE_DIR, "olist.db")
 # Page Configuration
 st.set_page_config(page_title="Olist AI Data Assistant", layout="wide")
 st.title("🤖 Olist E-Commerce AI Data Assistant")
-st.write("Ask business questions in plain English — AI converts to SQL, runs it, visualizes data and explains results.")
+st.write("Ask business questions in plain English — AI converts to SQL, runs it, visualizes data, and explains results.")
 
 # Always rebuild the database fresh on startup — this guarantees correct data
 # and avoids any stale/corrupt olist.db lingering from earlier deploy attempts.
@@ -121,12 +121,14 @@ def render_visualization(df_result):
                 break
 
         if len(other_cols) == 0 and len(df_result) == 1:
+            st.caption("[Chart type: KPI metric]")
             # Only truly numeric, single-row results count as a KPI
             # (e.g. "what is total revenue?", "average order value")
             for col in df_result.columns:
                 st.metric(label=col, value=df_result[col].iloc[0])
 
         elif date_col and numeric_cols:
+            st.caption(f"[Chart type: Line — detected date column: '{date_col}']")
             # Time-based question -> line chart shows the trend
             chart_df = df_result[[date_col] + numeric_cols].copy()
             chart_df[date_col] = pd.to_datetime(chart_df[date_col], errors="coerce")
@@ -143,6 +145,7 @@ def render_visualization(df_result):
             st.altair_chart(line_chart, use_container_width=True)
 
         elif other_cols and numeric_cols:
+            st.caption(f"[Chart type: Bar — category column: '{other_cols[0]}' (no date column detected)]")
             # Category-based question, e.g. "top states by revenue" -> bar chart
             category_col = other_cols[0]
             value_col = numeric_cols[0]
