@@ -51,6 +51,16 @@ def build_database():
                 continue
             if any(keyword in filename_lower for keyword in keywords):
                 df = pd.read_csv(csv_path)
+
+                # Pre-compute reliable 'YYYY-MM' columns for date fields in the
+                # orders table using pandas — this avoids depending on SQLite's
+                # strftime(), which can behave inconsistently across servers.
+                if table_name == "orders":
+                    for date_col in ["order_purchase_timestamp", "order_approved_at", "order_delivered_customer_date"]:
+                        if date_col in df.columns:
+                            parsed = pd.to_datetime(df[date_col], errors="coerce")
+                            df[f"{date_col}_year_month"] = parsed.dt.strftime("%Y-%m")
+
                 df.to_sql(table_name, conn, if_exists="replace", index=False)
                 print(f"Loaded {table_name}: {len(df)} rows, {len(df.columns)} columns (from {os.path.basename(csv_path)})")
                 matched_tables.add(table_name)

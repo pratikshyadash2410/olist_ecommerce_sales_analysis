@@ -218,7 +218,7 @@ if st.button("Analyze Query"):
     Rules:
     - Output ONLY raw executable SQL code.
     - Do NOT wrap in ```sql or markdown fences.
-    - If the question asks about a trend over time (monthly, yearly, daily, etc.), extract the period using SQLite's strftime function (e.g. strftime('%Y-%m', date_column) AS month), GROUP BY that extracted period, and ORDER BY it chronologically. Never collapse a trend question into a single aggregate row.
+    - If the question asks about a trend over time (monthly, yearly, etc.) and a column ending in '_year_month' exists in the schema (e.g. order_purchase_timestamp_year_month), use that column directly with GROUP BY and ORDER BY it — do NOT use strftime(). Only use strftime() if no such pre-computed column is available.
     - User Question: {user_query}
     """
 
