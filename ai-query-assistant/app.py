@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import streamlit as st
 import altair as alt
+import sqlparse
 import google.generativeai as genai
 from build_database import build_database
 
@@ -16,10 +17,13 @@ st.set_page_config(page_title="Olist AI Data Assistant", layout="wide")
 st.title("🤖 Olist E-Commerce AI Data Assistant")
 st.write("Ask business questions in plain English — AI converts to SQL, runs it, visualizes data, and explains results.")
 
-# Database is rebuilt fresh from the CSVs on every startup — cheap (a few
-# seconds) and guarantees correct, up-to-date data regardless of server state.
-with st.spinner("Setting up the database..."):
-    build_database()
+# Database is rebuilt fresh once per session (not on every button click/rerun —
+# Streamlit reruns the whole script on every interaction, so rebuilding every
+# time caused overlapping writes and a "database is locked" error).
+if "db_built" not in st.session_state:
+    with st.spinner("Setting up the database..."):
+        build_database()
+    st.session_state.db_built = True
 
 # ---------------------------------------------------------------------------
 # API key
@@ -55,10 +59,6 @@ def generate_with_fallback(prompt):
 
 def get_db_schema():
     conn = sqlite3.connect(DB_PATH)
-    # --- ADDED: Unlock Aid Code ---
-    # Database ko 30 seconds tak wait karne ko bolega agar lock ho.
-    conn.execute("PRAGMA busy_timeout = 30000") 
-    # ------------------------------
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
     tables = cursor.fetchall()
@@ -120,7 +120,12 @@ def render_visualization(df_result):
         if len(other_cols) == 0 and len(df_result) == 1:
             # Purely numeric, single-row result (e.g. "what is total revenue?")
             for col in df_result.columns:
-                st.metric(label=title_lookup.get(col, col), value=df_result[col].iloc[0])
+                raw_value = df_result[col].iloc[0]
+                if isinstance(raw_value, (int, float)):
+                    display_value = f"{raw_value:,.2f}"
+                else:
+                    display_value = raw_value
+                st.metric(label=title_lookup.get(col, col), value=display_value)
 
         elif date_col and numeric_cols:
             # Time-based question -> line chart shows the trend
@@ -191,8 +196,23 @@ def render_visualization(df_result):
                 st.altair_chart(bar_chart, use_container_width=True)
 
         elif len(numeric_cols) >= 2:
-            # Two numeric columns, no category -> scatter shows the relationship
-            st.scatter_chart(df_result[numeric_cols[:2]])
+            # Two numeric columns, no category -> scatter shows the relationship.
+            # zero=False avoids forcing a 0 baseline, which looks wrong for
+            # values like month numbers that don't naturally start at 0.
+            x_col, y_col = numeric_cols[0], numeric_cols[1]
+            scatter_chart = (
+                alt.Chart(df_result)
+                .mark_circle(size=80)
+                .encode(
+                    x=alt.X(f"{x_col}:Q", scale=alt.Scale(zero=False), title=title_lookup.get(x_col, x_col)),
+                    y=alt.Y(f"{y_col}:Q", scale=alt.Scale(zero=False), title=title_lookup.get(y_col, y_col)),
+                    tooltip=[
+                        alt.Tooltip(f"{x_col}:Q", title=title_lookup.get(x_col, x_col)),
+                        alt.Tooltip(f"{y_col}:Q", title=title_lookup.get(y_col, y_col), format=",.2f"),
+                    ],
+                )
+            )
+            st.altair_chart(scatter_chart, use_container_width=True)
 
         else:
             st.info("This result doesn't map cleanly to a chart — see the table above.")
@@ -207,7 +227,8 @@ def render_visualization(df_result):
 EXAMPLE_QUESTIONS = [
     "Top 10 customer states by revenue",
     "What are the top 5 payment types used?",
-    "Show monthly revenue trend",
+    "Top 10 product categories by revenue",
+    "Top 10 sellers by number of orders",
     "What is the average order value?",
 ]
 
@@ -237,7 +258,7 @@ if st.button("Analyze Query"):
     Rules:
     - Output ONLY raw executable SQL code.
     - Do NOT wrap in ```sql or markdown fences.
-    - If the question asks about a trend over time (monthly, yearly, etc.) and a column ending in '_year_month' exists in the schema (e.g. order_purchase_timestamp_year_month), use that column directly with GROUP BY and ORDER BY it — do NOT use strftime(). Only use strftime() if no such pre-computed column is available.
+    - If the question involves grouping or displaying data by month or year in any way, and a column ending in '_year_month' exists in the schema (e.g. order_purchase_timestamp_year_month), always use that column directly with GROUP BY and ORDER BY it — do NOT use strftime() and do NOT extract a raw numeric month (e.g. do NOT use strftime('%m', ...) alone). Only use strftime() if no such pre-computed column is available.
     - User Question: {user_query}
     """
 
@@ -247,17 +268,26 @@ if st.button("Analyze Query"):
             clean_sql = sql_response_text.strip().replace("```sql", "").replace("```", "").strip()
 
         st.subheader("1. Generated SQL Query")
-        st.code(clean_sql, language="sql")
+        formatted_sql = sqlparse.format(clean_sql, reindent=True, keyword_case="upper", indent_width=4)
+        st.code(formatted_sql, language="sql")
+
+        if not clean_sql.strip().upper().startswith("SELECT"):
+            st.error("For safety, only read-only SELECT queries are allowed.")
+            st.stop()
 
         conn = sqlite3.connect(DB_PATH)
-        # --- ADDED: Unlock Aid Code ---
-        conn.execute("PRAGMA busy_timeout = 30000") 
-        # ------------------------------
         df_result = pd.read_sql_query(clean_sql, conn)
         conn.close()
 
+        MAX_DISPLAY_ROWS = 1000
+        if len(df_result) > MAX_DISPLAY_ROWS:
+            st.info(f"Query returned {len(df_result)} rows — showing the first {MAX_DISPLAY_ROWS} to keep things fast.")
+            df_result = df_result.head(MAX_DISPLAY_ROWS)
+
         st.subheader("2. Query Output Data")
-        st.dataframe(df_result)
+        df_display = df_result.copy()
+        df_display.index = df_display.index + 1
+        st.dataframe(df_display)
 
         render_visualization(df_result)
 
@@ -276,4 +306,3 @@ if st.button("Analyze Query"):
 
     except Exception as e:
         st.error(f"Error executing query: {e}")
-```http://googleusercontent.com/image_generation_content/485
