@@ -15,7 +15,7 @@ DB_PATH = os.path.join(BASE_DIR, "olist.db")
 # ---------------------------------------------------------------------------
 st.set_page_config(page_title="Olist AI Data Assistant", layout="wide")
 st.title("🤖 Olist E-Commerce AI Data Assistant")
-st.write("Ask business questions in plain English — AI converts to SQL, runs it, visualizes data, and explains results.")
+st.write("Ask business questions in plain English — AI converts to SQL, runs it, visualizes data and explains results.")
 
 # Database is rebuilt fresh once per session (not on every button click/rerun —
 # Streamlit reruns the whole script on every interaction, so rebuilding every
@@ -225,10 +225,9 @@ def render_visualization(df_result):
 # Main query flow
 # ---------------------------------------------------------------------------
 EXAMPLE_QUESTIONS = [
-    "Top 10 customer states by revenue",
+    "What are the top 5 states by revenue?",
     "What are the top 5 payment types used?",
     "Top 10 product categories by revenue",
-    "Top 10 sellers by number of orders",
     "What is the average order value?",
 ]
 
