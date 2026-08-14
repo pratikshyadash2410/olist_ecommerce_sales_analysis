@@ -14,6 +14,33 @@ DB_PATH = os.path.join(BASE_DIR, "olist.db")
 # Page setup
 # ---------------------------------------------------------------------------
 st.set_page_config(page_title="Olist AI Data Assistant", layout="wide")
+
+# Custom premium dark navy + gold theme, injected directly (more reliable on
+# Streamlit Cloud than .streamlit/config.toml, which doesn't always apply).
+st.markdown("""
+    <style>
+    .stApp {
+        background-color: #0A0E1A;
+        color: #F2F0E8;
+    }
+    [data-testid="stSidebar"] {
+        background-color: #1A1F2E;
+    }
+    .stButton > button {
+        background-color: #D4AF37;
+        color: #0A0E1A;
+        border: none;
+        font-weight: 600;
+    }
+    .stButton > button:hover {
+        background-color: #E8C158;
+        color: #0A0E1A;
+    }
+    h1, h2, h3, h4, p, label, .stMarkdown {
+        color: #F2F0E8 !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
 st.title("🤖 Olist E-Commerce AI Data Assistant")
 st.write("Ask business questions in plain English — AI converts to SQL, runs it, visualizes data and explains results.")
 
