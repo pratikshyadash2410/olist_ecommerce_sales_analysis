@@ -262,10 +262,9 @@ def render_visualization(df_result):
 # Main query flow
 # ---------------------------------------------------------------------------
 EXAMPLE_QUESTIONS = [
-    "Top 10 customer states by revenue",
+    "What are the top 10 states by revenue?",
     "What are the top 5 payment types used?",
     "Top 10 product categories by revenue",
-    "Top 10 sellers by number of orders",
     "What is the average order value?",
 ]
 
