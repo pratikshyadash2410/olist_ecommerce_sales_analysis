@@ -15,39 +15,39 @@ DB_PATH = os.path.join(BASE_DIR, "olist.db")
 # ---------------------------------------------------------------------------
 st.set_page_config(page_title="Olist AI Data Assistant", layout="wide")
 
-# Custom dark theme with purple-to-blue gradient accents, injected directly
+# Custom dark theme with deep blue-to-cyan gradient accents, injected directly
 # (more reliable on Streamlit Cloud than .streamlit/config.toml).
 st.markdown("""
     <style>
     .stApp {
-        background-color: #0D0D14;
-        color: #F5F5F7;
+        background-color: #0A0F1C;
+        color: #F0F6FC;
     }
     [data-testid="stSidebar"] {
-        background-color: #121218;
+        background-color: #0F1826;
     }
     [data-testid="stSidebar"] * {
-        color: #F5F5F7 !important;
+        color: #F0F6FC !important;
     }
     .stButton > button {
-        background: linear-gradient(90deg, #7C3AED, #3B82F6);
+        background: linear-gradient(90deg, #1D4ED8, #22D3EE);
         color: #FFFFFF;
         border: none;
         font-weight: 600;
     }
     .stButton > button:hover {
-        background: linear-gradient(90deg, #8B4FF0, #4C8DF7);
+        background: linear-gradient(90deg, #2E5FE8, #4EDCF0);
         color: #FFFFFF;
     }
     h1, h2, h3, h4 {
-        color: #F5F5F7 !important;
+        color: #F0F6FC !important;
     }
     [data-testid="stMetricValue"] {
-        color: #7C3AED !important;
+        color: #22D3EE !important;
     }
     .stAlert, [data-testid="stExpander"] {
-        background-color: #1A1A24 !important;
-        border: 1px solid #2A2A38 !important;
+        background-color: #131E2E !important;
+        border: 1px solid #1F3247 !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -262,9 +262,10 @@ def render_visualization(df_result):
 # Main query flow
 # ---------------------------------------------------------------------------
 EXAMPLE_QUESTIONS = [
-    "What are the top 5 states by revenue?",
+    "Top 10 customer states by revenue",
     "What are the top 5 payment types used?",
     "Top 10 product categories by revenue",
+    "Top 10 sellers by number of orders",
     "What is the average order value?",
 ]
 
