@@ -15,32 +15,39 @@ DB_PATH = os.path.join(BASE_DIR, "olist.db")
 # ---------------------------------------------------------------------------
 st.set_page_config(page_title="Olist AI Data Assistant", layout="wide")
 
-# Custom professional business theme, injected directly (more reliable on
-# Streamlit Cloud than .streamlit/config.toml, which doesn't always apply).
+# Custom dark theme with purple-to-blue gradient accents, injected directly
+# (more reliable on Streamlit Cloud than .streamlit/config.toml).
 st.markdown("""
     <style>
     .stApp {
-        background-color: #F7F9FC;
-        color: #1F2937;
+        background-color: #0D0D14;
+        color: #F5F5F7;
     }
     [data-testid="stSidebar"] {
-        background-color: #0F2A4A;
+        background-color: #121218;
     }
     [data-testid="stSidebar"] * {
-        color: #F7F9FC !important;
+        color: #F5F5F7 !important;
     }
     .stButton > button {
-        background-color: #1E4D8C;
+        background: linear-gradient(90deg, #7C3AED, #3B82F6);
         color: #FFFFFF;
         border: none;
         font-weight: 600;
     }
     .stButton > button:hover {
-        background-color: #2C63B0;
+        background: linear-gradient(90deg, #8B4FF0, #4C8DF7);
         color: #FFFFFF;
     }
     h1, h2, h3, h4 {
-        color: #0F2A4A !important;
+        color: #F5F5F7 !important;
+    }
+    [data-testid="stMetricValue"] {
+        color: #7C3AED !important;
+    }
+    .stAlert, [data-testid="stExpander"] {
+        background-color: #1A1A24 !important;
+        border: 1px solid #2A2A38 !important;
     }
     </style>
 """, unsafe_allow_html=True)
