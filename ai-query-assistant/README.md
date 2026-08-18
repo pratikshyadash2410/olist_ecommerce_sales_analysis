@@ -1,6 +1,6 @@
 # AI-Powered Data Query Assistant (Olist Extension)
 
-An extension of my [Olist E-Commerce Sales Analysis](../) project — instead of manually writing SQL to explore the data, this tool lets anyone ask a business question in plain English and get an AI-generated SQL query, the result data, an auto-picked visualization, and a plain-English business insight.
+An extension of my [Olist E-Commerce Sales Analysis](../) project — instead of manually writing SQL to explore the data, this tool lets anyone ask a business question in plain English and get an AI generated SQL query, the result data, an auto picked visualization and a plain English business insight.
 
 ## What it does
 
@@ -12,7 +12,7 @@ An extension of my [Olist E-Commerce Sales Analysis](../) project — instead of
 
 ## Why I built this
 
-My original Olist project used SQL + Tableau to answer fixed business questions. This extension explores a different angle: making the same underlying data queryable by *anyone*, not just someone who knows SQL — which is a growing real-world use case in business analytics (natural-language-to-SQL tools, AI-assisted BI).
+My original Olist project used SQL + Tableau to answer fixed business questions. This extension explores a different angle: making the same underlying data queryable by *anyone*, not just someone who knows SQL — which is a growing real world use case in business analytics (natural language to SQL tools, AI-assisted BI).
 
 ## Tech stack
 
@@ -44,16 +44,12 @@ streamlit run app.py
 
 The `data/` folder already includes the core Olist CSVs (customers, orders, order items, payments, reviews, products, sellers, category translations). The geolocation dataset is excluded — it's not used by this app and exceeds GitHub's file size limit for browser uploads. If you want it, download it separately from [Kaggle](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) and place it in `data/`, then delete `olist.db` and re-run the app to rebuild.
 
-You'll need a free Gemini API key from [Google AI Studio](https://aistudio.google.com) — the app will prompt you for it in the sidebar (nothing is hardcoded or stored).
+You'll need a free Gemini API key from [Google AI Studio](https://aistudio.google.com) — the app will prompt you for it in the sidebar.
 
 ## What I learned building this
 
-- How to design a natural-language-to-SQL prompt that reliably outputs clean, executable SQL
+- How to design a natural language to SQL prompt that reliably outputs clean, executable SQL
 - Handling LLM API model deprecation gracefully with a fallback chain across model versions
 - Why the shape of query results should drive chart selection, not a fixed chart type
 - Isolating failure points (a chart error shouldn't block the rest of the pipeline) instead of one large try/except
 
-## Related
-
-- Main analysis: [Olist E-Commerce Sales Analysis](../) (SQL + Tableau)
-- Live Tableau dashboard: *(link)*
