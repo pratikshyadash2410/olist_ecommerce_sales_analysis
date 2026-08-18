@@ -6,8 +6,8 @@ An extension of my [Olist E-Commerce Sales Analysis](../) project — instead of
 ## What it does
 1. **Ask a question** in plain English (e.g. *"which 5 states generate the highest revenue?"*)
 2. **AI converts it to SQL** using the Google Gemini API, based on the database schema
-3. **Query runs** against the Olist SQLite database (read-only — only SELECT queries are allowed, for safety)
-4. **Chart auto generates**, adapting to the shape of the result — a KPI card for single values, a pie chart for a small number of categories, a bar chart for larger category comparisons and a line chart for trends over time
+3. **Query runs** against the Olist SQLite database 
+4. **Chart auto generates**, adapting to the shape of the result
 5. **AI generates a concise 5 sentence business insight** summarizing what the result means
 
 ## Why I built this
@@ -31,4 +31,4 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 The `data/` folder already includes the core Olist CSVs (customers, orders, order items, payments, reviews, products, sellers, category translations). The geolocation dataset is excluded — it's not used by this app. If you want it, download it separately from [Kaggle](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) and place it in `data/`, then delete `olist.db` and re run the app to rebuild.
-You'll need a free Gemini API key from [Google AI Studio](https://aistudio.google.com) 
+You'll need a free Gemini API key from [Google AI Studio](https://aistudio.google.com) to use this application.
