@@ -1,7 +1,4 @@
 # AI-Powered Data Query Assistant (Olist Extension)
-An extension of my [Olist E-Commerce Sales Analysis](../) project — instead of manually writing SQL to explore the data, this tool lets anyone ask a business question in plain English and get an AI generated SQL query, the result data, an auto picked visualization and a plain English business insight.
-
-# AI-Powered Data Query Assistant (Olist Extension)
 
 An extension of my [Olist E-Commerce Sales Analysis](../) project — instead of manually writing SQL to explore the data, this tool lets anyone ask a business question in plain English and get an AI generated SQL query, the result data, an auto picked visualization and a plain English business insight.
 
