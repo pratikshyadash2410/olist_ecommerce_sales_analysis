@@ -6,8 +6,6 @@ An extension of my [Olist E-Commerce Sales Analysis](../) project — instead of
 
 🔗 **Try it live:** [olist-ai-assistant.streamlit.app](https://olist-ai-assistant.streamlit.app) — type your own business question and see it work end to end
 
-🎥 **Watch it in action:** [demo video link here]
-
 ## What it does
 
 1. **Ask a question** in plain English (e.g. *"which 5 states generate the highest revenue?"*)
